@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-xeno-blue: #0052ff;
+  --color-xeno-dark: #0e172c;
+  --color-xeno-orange: #ff7a30;
+  --color-xeno-light: #f4f7ff;
+  
+  /* Scaled down font sizes (minus 4px) */
+  --text-xs: 0.5rem; /* 8px */
+  --text-sm: 0.625rem; /* 10px */
+  --text-base: 0.75rem; /* 12px */
+  --text-lg: 0.875rem; /* 14px */
+  --text-xl: 1rem; /* 16px */
+  --text-2xl: 1.25rem; /* 20px */
+  --text-3xl: 1.625rem; /* 26px */
+  --text-4xl: 2rem; /* 32px */
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility skeleton {
+  background-color: #f3f4f6;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 20%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.5) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@utility hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Webkit */
+  }
+}

@@ -9,6 +9,9 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// Trust reverse proxy (required for express-rate-limit when behind Nginx/Heroku/Docker)
+app.set('trust proxy', 1);
+
 // Rate Limiting
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

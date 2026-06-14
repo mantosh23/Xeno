@@ -42,15 +42,13 @@ export function TopCampaignCard() {
         ) : (
           <div className="flex-1 flex flex-col sm:flex-row gap-6 pt-2">
             {/* Poster Thumbnail */}
-            <div className="relative h-[160px] w-full sm:w-[160px] flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 flex items-center justify-center">
-              {campaigns.list[0].creatives && campaigns.list[0].creatives[0] ? (
+            <div className="relative h-[160px] w-full sm:w-[160px] flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#6345ED] to-[#3B82F6] flex items-center justify-center">
+              {campaigns.list[0].creatives && campaigns.list[0].creatives[0] && (
                 <img
                   src={campaigns.list[0].creatives[0]}
                   alt={campaigns.list[0].name}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-              ) : (
-                <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest">No Image</span>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
               <div className="absolute bottom-3 left-3 right-3 text-white">
@@ -60,7 +58,7 @@ export function TopCampaignCard() {
             </div>
 
             {/* Campaign Details */}
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               <div className="mb-4">
                 <h4 className="text-lg font-bold text-gray-900 truncate">{campaigns.list[0].name}</h4>
                 <p className="text-sm text-gray-500 mt-1 truncate">

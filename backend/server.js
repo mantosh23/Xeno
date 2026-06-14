@@ -34,7 +34,7 @@ const startServer = async () => {
         });
 
         // Start background tasks
-        await automationEngine.startEngine();
+        // await automationEngine.startEngine();
 
         // Graceful shutdown
         const gracefulShutdown = () => {

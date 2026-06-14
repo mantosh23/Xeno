@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Integrations } from './Integrations';
-import { User, Bell, Link2, Shield, X } from 'lucide-react';
+import { Link2, X } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -13,10 +13,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'integrations', label: 'Integrations', icon: Link2 },
-    { id: 'security', label: 'Security', icon: Shield },
   ];
 
   return (

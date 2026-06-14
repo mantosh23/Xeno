@@ -8,7 +8,19 @@ import { useDashboardStore } from '../../store/useDashboardStore';
 export function CampaignPerformance() {
   const { selectedCampaignFilter, analytics } = useDashboardStore();
   const summary = analytics?.summary || { sent: 0, delivered: 0, opened: 0, clicked: 0, purchased: 0 };
-  const data = analytics?.chartData || [];
+  let data = analytics?.chartData || [];
+  
+  // If there's only 1 day of real data, Recharts will only draw a dot. 
+  // Pad it with a previous empty day so it draws a line.
+  if (data.length === 1) {
+    const singleDate = new Date(data[0].date);
+    singleDate.setDate(singleDate.getDate() - 1);
+    const prevDateStr = singleDate.toISOString().split('T')[0];
+    data = [
+      { date: prevDateStr, sent: 0, delivered: 0, opened: 0, clicked: 0, purchased: 0 },
+      ...data
+    ];
+  }
   const isLoading = !analytics;
 
   return (

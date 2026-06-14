@@ -19,11 +19,16 @@ export function ChannelPerformance() {
   let data: any[] = [];
   if (analytics?.channelBreakdown) {
     const breakdown = analytics.channelBreakdown;
-    let totalSent = 0;
-    Object.values(breakdown).forEach((ch: any) => totalSent += ch.sent);
+    let totalMetric = 0;
+    
+    // Use delivered if sent is 0 (happens if webhooks skip 'sent' state)
+    Object.values(breakdown).forEach((ch: any) => {
+      totalMetric += Math.max(ch.sent, ch.delivered, 0);
+    });
     
     data = Object.keys(breakdown).map((channel) => {
-      const percentage = totalSent > 0 ? Math.round((breakdown[channel].sent / totalSent) * 100) : 0;
+      const metric = Math.max(breakdown[channel].sent, breakdown[channel].delivered, 0);
+      const percentage = totalMetric > 0 ? Math.round((metric / totalMetric) * 100) : 0;
       return {
         name: channel,
         value: percentage,

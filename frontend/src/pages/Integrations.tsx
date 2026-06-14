@@ -53,7 +53,7 @@ export const Integrations = () => {
   return (
     <div className="w-full">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {INTEGRATIONS.map((integration) => {
           const isConnected = !!connections[integration.id];
           const Icon = integration.icon;
@@ -65,28 +65,28 @@ export const Integrations = () => {
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
                 </div>
               )}
-              <CardHeader className="pb-4">
-                <div className={`w-12 h-12 rounded-xl ${integration.bgColor} flex items-center justify-center mb-4`}>
-                  <Icon className={`h-6 w-6 ${integration.color}`} />
+              <CardHeader className="pb-3">
+                <div className={`w-10 h-10 rounded-lg ${integration.bgColor} flex items-center justify-center mb-3`}>
+                  <Icon className={`h-5 w-5 ${integration.color}`} />
                 </div>
-                <CardTitle className="text-xl">{integration.name}</CardTitle>
-                <CardDescription className="text-sm font-medium text-gray-500">
+                <CardTitle className="text-lg leading-tight">{integration.name}</CardTitle>
+                <CardDescription className="text-xs font-medium text-gray-500">
                   via {integration.provider}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 text-sm mb-6 h-10">
+                <p className="text-gray-600 text-xs mb-4 h-8">
                   {integration.description}
                 </p>
                 <button
                   onClick={() => toggleConnection(integration.id)}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
+                  className={`w-full py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                     isConnected 
                       ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100' 
                       : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8] shadow-sm'
                   }`}
                 >
-                  <Link2 className="h-4 w-4" />
+                  <Link2 className="h-3.5 w-3.5" />
                   {isConnected ? 'Disconnect' : 'Connect Account'}
                 </button>
               </CardContent>

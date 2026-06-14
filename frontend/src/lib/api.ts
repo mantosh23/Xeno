@@ -18,7 +18,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   }
 
   // Resolve API URL
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   let urlStr = typeof input === 'string' ? input : input.toString();
 
   // If the URL is relative (e.g. /api/campaigns), prefix it with the API_BASE_URL
@@ -26,8 +26,8 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     urlStr = `${API_BASE_URL}${urlStr}`;
   } 
   // If the URL has localhost hardcoded, safely replace it with API_BASE_URL in production
-  else if (urlStr.startsWith('http://localhost:3000')) {
-    urlStr = urlStr.replace('http://localhost:3000', API_BASE_URL);
+  else if (urlStr.startsWith('http://localhost:3001')) {
+    urlStr = urlStr.replace('http://localhost:3001', API_BASE_URL);
   }
 
   return fetch(urlStr, {

@@ -10,12 +10,14 @@ import {
   Target,
   Link2,
   Sparkles,
-  Trash2
+  Trash2,
+  LogOut
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { useStrategyStore } from '../../store/useStrategyStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { SettingsModal } from '../../pages/Settings';
 
 const navItems = [
@@ -33,6 +35,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { sessions, fetchSessions, deleteSession } = useStrategyStore();
+  const { signOut } = useAuthStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const urlSessionId = location.pathname.startsWith('/strategy/') ? location.pathname.split('/strategy/')[1] : null;
@@ -94,7 +97,7 @@ export function AppSidebar() {
 
       {/* Chat History Section */}
       <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex-1">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Past Chats</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Past Chats</div>
         <div className="space-y-1">
           {sessions.map(session => (
             <div key={session.id} className="relative group">
@@ -102,7 +105,7 @@ export function AppSidebar() {
                 onClick={() => handleLoadChat(session.id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl transition-all pr-10 ${urlSessionId === session.id ? 'bg-blue-50 border border-blue-100 shadow-sm' : 'hover:bg-white border border-transparent'}`}
               >
-                <div className={`text-xs font-semibold truncate ${urlSessionId === session.id ? 'text-[#0f62fe]' : 'text-gray-600'}`}>
+                <div className={`text-sm font-semibold truncate ${urlSessionId === session.id ? 'text-[#0f62fe]' : 'text-gray-600'}`}>
                   {session.title}
                 </div>
               </button>
@@ -116,7 +119,7 @@ export function AppSidebar() {
             </div>
           ))}
           {sessions.length === 0 && (
-            <div className="text-center text-gray-400 text-xs py-4">No past chats yet.</div>
+            <div className="text-center text-gray-500 text-sm py-4">No past chats yet.</div>
           )}
         </div>
       </div>
@@ -124,21 +127,7 @@ export function AppSidebar() {
 
       {/* Bottom Section */}
       <div className="p-4 space-y-4">
-        {/* AI Assistant Card */}
-        <div className="rounded-2xl border border-gray-100 bg-[#FCFAFF] p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold text-[#0f62fe]">AI Assistant</h3>
-            <span className="rounded-full bg-[#e6f0ff] px-2 py-0.5 text-xs font-bold text-[#0f62fe]">
-              BETA
-            </span>
-          </div>
-          <p className="text-[9px] text-[#0f62fe] mb-4 leading-[1.4] font-medium">
-            Ask anything about your audience, campaigns or performance.
-          </p>
-          <button className="w-full rounded-xl bg-[#0f62fe] py-2.5 text-[9px] font-bold text-white shadow-sm hover:bg-[#7C3AED] transition-colors">
-            Ask AI
-          </button>
-        </div>
+
 
         <div className="space-y-1">
           <button
@@ -147,6 +136,13 @@ export function AppSidebar() {
           >
             <Settings className="h-5 w-5 stroke-[2px] text-slate-500" />
             Settings
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+          >
+            <LogOut className="h-5 w-5 stroke-[2px] text-red-500" />
+            Logout
           </button>
         </div>
       </div>

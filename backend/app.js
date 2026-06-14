@@ -18,13 +18,6 @@ const globalLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-const aiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 20, 
-    message: { success: false, error: 'AI generation limit reached. Please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
 
 // Middleware
 app.use(helmet());
@@ -60,7 +53,7 @@ app.use('/api/customers', requireAuth, customerRoutes);
 app.use('/api/campaigns', requireAuth, campaignRoutes);
 
 // Apply strict rate limiting specifically to the AI endpoints
-app.use('/api/strategy', aiLimiter, requireAuth, strategyRoutes);
+app.use('/api/strategy', requireAuth, strategyRoutes);
 
 app.use('/api/channels', requireAuth, channelRoutes);
 app.use('/api/webhook', webhookRoutes); // Webhooks typically handle their own secret validation

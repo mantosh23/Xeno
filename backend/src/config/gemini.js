@@ -94,7 +94,7 @@ const callGeminiWithSession = async (sessionId, userMessage) => {
 };
 
 // ─── Call Gemini with full conversation history (Streaming) ───────────────
-const callGeminiWithSessionStream = async (sessionId, userMessage) => {
+const callGeminiWithSessionStream = async (sessionId, userMessage, displayMessage) => {
   if (!ai) throw new Error('Gemini AI not configured. Add GEMINI_API_KEY to backend/.env');
 
   const session = await getSession(sessionId);
@@ -120,7 +120,7 @@ const callGeminiWithSessionStream = async (sessionId, userMessage) => {
     saveHistory: async (fullAiResponse) => {
       const updatedMessages = [
         ...history,
-        { role: 'user', parts: [{ text: userMessage }] },
+        { role: 'user', parts: [{ text: displayMessage || userMessage }] },
         { role: 'model', parts: [{ text: fullAiResponse }] },
       ];
       await supabase

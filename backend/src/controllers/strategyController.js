@@ -69,7 +69,7 @@ JSON format:
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const { stream, saveHistory } = await callGeminiWithSessionStream(sessionId, prompt);
+        const { stream, saveHistory } = await callGeminiWithSessionStream(sessionId, prompt, query);
         
         // Initial connection message to establish session
         res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
@@ -239,7 +239,9 @@ exports.getSessions = async (req, res) => {
         if (error) throw error;
 
         // Map list to frontend format, grabbing the first user message as the title
-        const list = sessions.map(session => {
+        const list = sessions
+            .filter(session => session.messages && session.messages.length > 0)
+            .map(session => {
             const firstMsg = session.messages?.find(m => m.role === 'user');
             let title = 'New Strategy Chat';
             if (firstMsg && firstMsg.parts?.[0]?.text) {

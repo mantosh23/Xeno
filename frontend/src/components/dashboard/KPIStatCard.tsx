@@ -5,7 +5,7 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 interface KPIStatCardProps {
   label: string;
   value: string | number;
-  growth: string;
+  growth?: string;
   isPositive?: boolean;
   icon: React.ElementType;
   iconBgColor?: string;
@@ -39,28 +39,30 @@ export function KPIStatCard({
             )}
           </div>
         </div>
-        <div>
-          {isLoading ? (
-            <div className="h-5 w-32 skeleton rounded" />
-          ) : (
-            <div className="flex items-center gap-1">
-              {isPositive ? (
-                <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4 text-red-500" />
-              )}
-              <span
-                className={cn(
-                  'text-sm font-medium',
-                  isPositive ? 'text-emerald-600' : 'text-red-600'
+        {growth && (
+          <div>
+            {isLoading ? (
+              <div className="h-5 w-32 skeleton rounded" />
+            ) : (
+              <div className="flex items-center gap-1">
+                {isPositive ? (
+                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 text-red-500" />
                 )}
-              >
-                {growth}
-              </span>
-              <span className="text-sm text-gray-400 ml-1">vs Apr</span>
-            </div>
-          )}
-        </div>
+                <span
+                  className={cn(
+                    'text-sm font-medium',
+                    isPositive ? 'text-emerald-600' : 'text-red-600'
+                  )}
+                >
+                  {growth}
+                </span>
+                <span className="text-sm text-gray-400 ml-1">vs prev</span>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -11,7 +11,7 @@ const { uploadBase64ToCloudinary } = require('../config/cloudinary');
  */
 exports.generateStrategy = async (req, res) => {
     try {
-        const { query, sessionId: clientSessionId } = req.body;
+        const { query, sessionId: clientSessionId, displayMessage } = req.body;
         if (!query) {
             return res.status(400).json({ success: false, error: 'Query is required' });
         }
@@ -26,6 +26,7 @@ exports.generateStrategy = async (req, res) => {
 
 Respond with a helpful, conversational reply.
 If the user asks to build/find an audience, create posters/creatives, write message copy, or design an automation workflow, output a JSON block inside markdown codeblocks (e.g., \`\`\`json { ... } \`\`\`) in your response. You can include multiple actions in one JSON if the user asks for them together.
+CRITICAL: The JSON must be strictly valid. Do not use unescaped newlines in strings. Do not include comments (//) inside the JSON.
 
 CRITICAL RULE FOR CREATIVES: When a user asks for an image/poster, you MUST FIRST ask them follow-up questions about their preferences (e.g., style, color palette, mood, specific subjects) UNLESS they already provided these details. 
 If you are asking a follow-up question, DO NOT output the JSON block for "creatives" yet. Only output the "creatives" JSON block AFTER the user has replied with their preferences.
@@ -55,12 +56,17 @@ JSON format:
   "insight": { // Only if the user asks for strategic insights or data analysis
     "message": "The actionable insight sentence"
   },
-  "automation": { // Only if the user asks to create an automation workflow
+  "automation": {
     "title": "Abandoned Cart Reminder",
-    "description": "Waits 2 hours after cart abandonment before sending a WhatsApp ping.",
+    "description": "Waits 2 hours after cart abandonment before sending reminders.",
     "triggers": "Cart Abandoned",
-    "actions": "Wait 2 hrs -> WhatsApp Message",
-    "message_copy": "Hey {{name}}, we noticed you left some amazing items in your cart. Grab them now before they sell out!"
+    "actions": "Wait 2 hrs -> Multi-channel Ping",
+    "channels": ["WhatsApp", "SMS", "Email"],
+    "copies": {
+      "WhatsApp": "Hey {{name}}, we noticed you left some amazing items in your cart. Grab them now before they sell out!",
+      "SMS": "Hi {{name}}, your cart is waiting for you! Click here to complete checkout: {{link}}",
+      "Email": "Subject: Don't miss out on your items!\\n\\nHey {{name}},\\n\\nWe saved your cart for you..."
+    }
   }
 }`;
 
@@ -69,7 +75,7 @@ JSON format:
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const { stream, saveHistory } = await callGeminiWithSessionStream(sessionId, prompt, query);
+        const { stream, saveHistory } = await callGeminiWithSessionStream(sessionId, prompt, displayMessage || query);
         
         // Initial connection message to establish session
         res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
@@ -245,8 +251,14 @@ exports.getSessions = async (req, res) => {
             const firstMsg = session.messages?.find(m => m.role === 'user');
             let title = 'New Strategy Chat';
             if (firstMsg && firstMsg.parts?.[0]?.text) {
-                title = firstMsg.parts[0].text.substring(0, 40);
-                if (firstMsg.parts[0].text.length > 40) title += '...';
+                let text = firstMsg.parts[0].text;
+                // Strip the long system prompt if it exists from historical data
+                const match = text.match(/based on this request: "(.*?)". Format the output/);
+                if (match && match[1]) {
+                    text = match[1];
+                }
+                title = text.substring(0, 40);
+                if (text.length > 40) title += '...';
             }
 
             return {
@@ -287,8 +299,16 @@ exports.getSessionById = async (req, res) => {
         const mappedMessages = [];
 
         for (const msg of (session.messages || [])) {
-            const text = msg.parts?.[0]?.text || '';
+            let text = msg.parts?.[0]?.text || '';
             const role = msg.role === 'model' ? 'ai' : 'user';
+            
+            // Clean up historical user messages that contain the prompt
+            if (role === 'user') {
+                const match = text.match(/based on this request: "(.*?)". Format the output/);
+                if (match && match[1]) {
+                    text = match[1];
+                }
+            }
             
             let data = null;
             let displayAiText = text;

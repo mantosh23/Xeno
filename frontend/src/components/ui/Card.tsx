@@ -1,7 +1,12 @@
-import { cn } from '../../lib/utils';
+import { cn } from '../../utils/utils';
 
 type CardProps = React.HTMLAttributes<HTMLDivElement>;
 
+/**
+ * Card Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function Card({ className, ...props }: CardProps) {
   return (
     <div
@@ -14,6 +19,11 @@ export function Card({ className, ...props }: CardProps) {
   );
 }
 
+/**
+ * CardHeader Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function CardHeader({ className, ...props }: CardProps) {
   return (
     <div
@@ -23,6 +33,11 @@ export function CardHeader({ className, ...props }: CardProps) {
   );
 }
 
+/**
+ * CardTitle Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
@@ -32,6 +47,11 @@ export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHead
   );
 }
 
+/**
+ * CardDescription Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
@@ -41,10 +61,20 @@ export function CardDescription({ className, ...props }: React.HTMLAttributes<HT
   );
 }
 
+/**
+ * CardContent Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function CardContent({ className, ...props }: CardProps) {
   return <div className={cn('', className)} {...props} />;
 }
 
+/**
+ * CardFooter Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function CardFooter({ className, ...props }: CardProps) {
   return (
     <div

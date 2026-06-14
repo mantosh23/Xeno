@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@plugin "@tailwindcss/typography";
 @theme {
   --color-xeno-blue: #0052ff;
   --color-xeno-dark: #0e172c;

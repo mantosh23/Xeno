@@ -108,15 +108,15 @@ Return ONLY JSON wrapped in a markdown \`\`\`json block:
   "recommended_channels": ["WhatsApp","Instagram","Email","Facebook","SMS"],
   "campaign_name": "creative, specific campaign name (max 5 words)",
   "reasoning": "2 sentences citing the specific numbers from the database above",
-  "steps": [
-    { "day": 1, "channel": "WhatsApp", "condition": "all" },
-    { "day": 3, "channel": "Instagram", "condition": "unopened" }
-  ]
+  "content_ideas": {
+    "Email": "Subject: We miss you! \\n\\nBody...",
+    "WhatsApp": "Hi there! We miss you..."
+  }
 }
-The "steps" array must define a 1-3 step automated drip campaign. "condition" can be "all", "unopened", or "unclicked".`;
+The "content_ideas" object must contain the exact message copy tailored for each of the selected channels to be sent at once as a single blast.`;
 
     const cleanMsg = `Goal: ${goal}`;
-    const text = await callGeminiWithSession(session_id, cleanMsg, prompt);
+    const text = await callGeminiWithSession(session_id, prompt, cleanMsg);
     const strategy = parseAIJson(text);
     res.json({ success: true, strategy });
   } catch (err) {
@@ -211,7 +211,7 @@ Real results (inactive > ${inactive_days} days, min spend ₹${min_spend}):
 Please acknowledge and keep this for later steps.
 Return ONLY: { "acknowledged": true, "summary": "one sentence about this audience" }`;
 
-      callGeminiWithSession(session_id, "I found an audience. I will proceed with generating insights.", contextMsg).catch(err =>
+      callGeminiWithSession(session_id, contextMsg, "I found an audience. I will proceed with generating insights.").catch(err =>
         console.warn('Audience context save warn:', err.message)
       );
     }
@@ -301,7 +301,7 @@ Based on this data AND our campaign goal and strategy from earlier in our conver
 Return ONLY valid JSON: { "insight": "one powerful sentence" }`;
 
         const cleanMsg = `Give me an insight.`;
-        const text = await callGeminiWithSession(session_id, cleanMsg, insightPrompt);
+        const text = await callGeminiWithSession(session_id, insightPrompt, cleanMsg);
         const parsed = parseAIJson(text);
         ai_insight = parsed.insight;
       } catch (aiErr) {
@@ -365,7 +365,7 @@ Return ONLY valid JSON (no markdown):
   "expected_conversion_rate": <realistic decimal e.g. 3.8>
 }`;
       const cleanMsg = `Provide content for channel: ${channel}`;
-      const text = await callGeminiWithSession(session_id, cleanMsg, prompt);
+      const text = await callGeminiWithSession(session_id, prompt, cleanMsg);
       content = parseAIJson(text);
     } catch (aiErr) {
       console.warn("AI content failed, using requested fallback", aiErr.message);
@@ -527,7 +527,7 @@ Using our full campaign conversation context AND this customer's specific data, 
 Return ONLY valid JSON: { "personalized_message": "the personalized message" }`;
 
     const cleanMsg = `Generate creatives.`;
-    const text = await callGeminiWithSession(session_id, cleanMsg, prompt);
+    const text = await callGeminiWithSession(session_id, prompt, cleanMsg);
     const parsed = parseAIJson(text);
     res.json({ success: true, personalized_message: parsed.personalized_message });
   } catch (err) {
@@ -573,6 +573,33 @@ exports.saveCampaign = async (req, res) => {
     res.status(201).json({ success: true, campaign: data });
   } catch (err) {
     console.error('saveCampaign error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// PUT /api/campaigns/:id  →  Update Campaign details
+// ─────────────────────────────────────────────────────────────────────────
+/**
+ * @function updateCampaign
+ * @description Updates standard campaign details (name, goal, offer, status)
+ */
+exports.updateCampaign = async (req, res) => {
+  const { id } = req.params;
+  const { name, goal, offer, status } = req.body;
+
+  try {
+    const { data, error } = await supabase
+      .from('campaigns')
+      .update({ name, goal, offer, status, updated_at: new Date() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, campaign: data });
+  } catch (err) {
+    console.error('updateCampaign error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -692,9 +719,10 @@ Return ONLY valid JSON in this exact structure:
   "channels": ["Email", "WhatsApp"],
   "strategy": {
     "summary": "Short explanation of the angle",
-    "steps": [
-      { "day": 1, "channel": "Email", "description": "We miss you" }
-    ]
+    "content_ideas": {
+      "Email": "Subject: We miss you! \\n\\nBody...",
+      "WhatsApp": "Hi there! We miss you..."
+    }
   }
 }`;
 
@@ -715,8 +743,8 @@ Return ONLY valid JSON in this exact structure:
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
 
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    const strategyJSON = JSON.parse(resultText);
+    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const strategyJSON = parseAIJson(resultText);
 
     // Insert as Recommended
     const { data: inserted, error } = await supabase
@@ -724,7 +752,6 @@ Return ONLY valid JSON in this exact structure:
       .insert({
         name: strategyJSON.name,
         goal: strategyJSON.goal,
-        audience_type: strategyJSON.audience_type,
         channels: strategyJSON.channels,
         strategy: strategyJSON.strategy,
         status: 'Recommended'
@@ -774,14 +801,14 @@ exports.getAllCampaigns = async (req, res) => {
  * @returns {Promise<void>} Sends JSON response containing the generated image URL.
  */
 exports.generateCampaignImage = async (req, res) => {
-  const { campaign_name, offer, top_category, session_id } = req.body;
+  const { campaign_name, offer, top_category, session_id, prompt } = req.body;
 
   try {
     const { GoogleGenAI } = require('@google/genai');
     const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Gemini ko clearly bolna hai — generate karo, fetch mat karo
-    const imagePrompt = `Premium Indian fashion campaign poster. Stylish urban Indian model aged 20-35, deep purple and white studio backdrop, editorial magazine quality, empty bottom 25% for text overlay, no text no logos no watermarks, square 1:1 format, hyperrealistic photography.`;
+    const imagePrompt = prompt || `Premium Indian fashion campaign poster. Stylish urban Indian model aged 20-35, deep purple and white studio backdrop, editorial magazine quality, empty bottom 25% for text overlay, no text no logos no watermarks, square 1:1 format, hyperrealistic photography.`;
 
     const response = await genai.models.generateContent({
       model: 'gemini-2.5-flash-image',

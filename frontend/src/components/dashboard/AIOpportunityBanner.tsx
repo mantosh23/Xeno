@@ -1,8 +1,13 @@
 import { Sparkles } from 'lucide-react';
-import { useDashboardStore } from '../../store/useDashboardStore';
+import { useStatsStore } from '../../features/dashboard/hooks/useStatsStore';
 
+/**
+ * AIOpportunityBanner Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function AIOpportunityBanner() {
-  const { stats } = useDashboardStore();
+  const stats = useStatsStore((s) => s.stats);
   
   // Format the values cleanly
   const formattedCount = new Intl.NumberFormat('en-IN').format(stats.inactiveCount || 0);

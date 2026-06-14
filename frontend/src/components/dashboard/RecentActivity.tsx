@@ -1,10 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { CheckCircle2, Eye, ShoppingCart, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-import { useDashboardStore } from '../../store/useDashboardStore';
+import { useStatsStore } from '../../features/dashboard/hooks/useStatsStore';
+import { useAnalyticsStore } from '../../features/dashboard/hooks/useAnalyticsStore';
+import { useCampaignsListStore } from '../../features/campaigns/hooks/useCampaignsListStore';
 
+/**
+ * RecentActivity Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function RecentActivity() {
-  const { stats, analytics, campaigns } = useDashboardStore();
+  const stats = useStatsStore((s) => s.stats);
+  const navigate = useNavigate();
+  const analytics = useAnalyticsStore((s) => s.analytics);
+  const campaigns = useCampaignsListStore((s) => s.campaigns);
   const isLoading = stats.isLoading || campaigns.isLoading;
 
   const topCampaign = campaigns.list && campaigns.list.length > 0 ? campaigns.list[0] : null;
@@ -44,7 +55,7 @@ export function RecentActivity() {
     <Card className="flex flex-col h-full w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-0">
         <CardTitle>Recent Activity</CardTitle>
-        <button className="text-sm font-semibold text-[#0f62fe] hover:opacity-80 transition-opacity">
+        <button onClick={() => navigate('/campaigns')} className="text-sm font-semibold text-[#0f62fe] hover:opacity-80 transition-opacity">
           View All
         </button>
       </CardHeader>

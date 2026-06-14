@@ -54,7 +54,7 @@ const getSession = async (sessionId) => {
 
 // ─── Call Gemini with full conversation history ───────────────────────────
 // Appends userMessage to the history, calls the model, saves the exchange back.
-const callGeminiWithSession = async (sessionId, userMessage) => {
+const callGeminiWithSession = async (sessionId, userMessage, displayMessage) => {
   if (!ai) throw new Error('Gemini AI not configured. Add GEMINI_API_KEY to backend/.env');
 
   const session = await getSession(sessionId);
@@ -79,7 +79,7 @@ const callGeminiWithSession = async (sessionId, userMessage) => {
   // Persist the new exchange
   const updatedMessages = [
     ...history,
-    { role: 'user', parts: [{ text: userMessage }] },
+    { role: 'user', parts: [{ text: displayMessage || userMessage }] },
     { role: 'model', parts: [{ text: modelText }] },
   ];
 

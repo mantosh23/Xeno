@@ -50,27 +50,46 @@ exports.parseAIFilter = async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ success: false, error: 'Prompt is required' });
 
-        const systemInstruction = `You are an AI that translates natural language into audience filter parameters for an e-commerce CRM.
-Return ONLY a valid JSON object matching this structure exactly (use empty strings for values not mentioned):
+        const systemInstruction = `You are a helpful AI Assistant for the StyleHive CRM.
+You must translate natural language into audience filter parameters, AND ALSO answer any questions the user asks.
+If the user asks a general question (e.g., "who was our first client", "how do I increase sales?"), ANSWER it in the 'reply' field directly using your knowledge. Do not say you can only apply filters. Be conversational, helpful, and act like a marketing expert.
+
+The 'customer_metrics' view has these columns:
+- shipping_city (text)
+- loyalty_tier (text)
+- total_lifetime_value (numeric)
+- total_orders (numeric)
+- last_order_date (timestamp)
+- first_name (text)
+- last_name (text)
+- email (text)
+- phone (text)
+- gender (text)
+
+Return ONLY a valid JSON object matching this structure exactly (use empty strings for basic filters not mentioned):
 {
-  "reply": "A short, helpful conversational reply to the user, answering their question or confirming the filters applied.",
+  "reply": "A helpful conversational reply answering the user's question directly, OR confirming the filters applied.",
   "filters": {
     "city": "Mumbai" | "Delhi" | "Bangalore" | "",
     "inactive_days": "30" | "60" | "90" | "",
     "min_spend": "5000" | "10000" | "",
     "loyalty_tier": "Platinum" | "Gold" | "Silver" | "Standard" | ""
-  }
+  },
+  "advanced_filters": [
+    { "column": "total_orders", "operator": "gte", "value": 5 },
+    { "column": "shipping_city", "operator": "eq", "value": "Delhi" }
+  ]
 }
 Examples:
-- "Find me users in Delhi who haven't shopped in 60 days" -> {"reply": "I've applied filters for users in Delhi who haven't shopped in the last 60 days.", "filters": {"city": "Delhi", "inactive_days": "60", "min_spend": "", "loyalty_tier": ""}}
-- "What is a VIP?" -> {"reply": "VIP usually refers to our Platinum tier customers. I've filtered the audience for you.", "filters": {"city": "", "inactive_days": "", "min_spend": "", "loyalty_tier": "Platinum"}}
-- "Dormant users with 5k spend" -> {"reply": "Got it. I'm filtering for customers with a minimum spend of ₹5000 who haven't shopped in 60 days.", "filters": {"city": "", "inactive_days": "60", "min_spend": "5000", "loyalty_tier": ""}}
+- "Find me users in Delhi who haven't shopped in 60 days" -> {"reply": "I've applied filters for users in Delhi who haven't shopped in the last 60 days.", "filters": {"city": "Delhi", "inactive_days": "60", "min_spend": "", "loyalty_tier": ""}, "advanced_filters": []}
+- "Show me people who placed exactly 2 orders and live in Mumbai" -> {"reply": "Sure, I found people in Mumbai who have exactly 2 orders.", "filters": {"city": "Mumbai", "inactive_days": "", "min_spend": "", "loyalty_tier": ""}, "advanced_filters": [{"column":"total_orders", "operator":"eq", "value":2}]}
+Use advanced_filters for ANY conditions that don't fit exactly into the 4 basic UI filters. Valid operators: eq, neq, gt, gte, lt, lte, ilike.
 Extract the filters mentioned in the user's prompt.`;
 
         const responseText = await callGeminiDirect(prompt, systemInstruction);
         const parsed = parseAIJson(responseText);
 
-        res.json({ success: true, filters: parsed.filters, reply: parsed.reply });
+        res.json({ success: true, filters: parsed.filters, advanced_filters: parsed.advanced_filters || [], reply: parsed.reply });
     } catch (err) {
         console.error('parseAIFilter error:', err);
         res.status(500).json({ success: false, error: err.message });
@@ -86,9 +105,20 @@ Extract the filters mentioned in the user's prompt.`;
  */
 exports.exportCustomers = async (req, res) => {
     try {
-        const { city, loyalty_tier, min_spend, inactive_days } = req.query;
+        const { city, loyalty_tier, min_spend, inactive_days, advanced_filters } = req.query;
 
         let query = supabase.from('customer_metrics').select('*');
+
+        if (advanced_filters) {
+            try {
+                const parsedAdvanced = JSON.parse(advanced_filters);
+                parsedAdvanced.forEach(f => {
+                    query = query[f.operator](f.column, f.value);
+                });
+            } catch(e) {
+                console.error("Advanced filter parse error in export", e);
+            }
+        }
 
         if (city) query = query.eq('shipping_city', city);
         if (loyalty_tier) query = query.eq('loyalty_tier', loyalty_tier);
@@ -145,10 +175,21 @@ exports.getAllCustomers = async (req, res) => {
         const page = req.query.page ? parseInt(req.query.page) : 1;
         const limit = req.query.limit ? parseInt(req.query.limit) : 12;
         
-        const { city, loyalty_tier, min_spend, inactive_days } = req.query;
+        const { city, loyalty_tier, min_spend, inactive_days, advanced_filters } = req.query;
 
         // Start a query on our fast customer_metrics view
         let query = supabase.from('customer_metrics').select('*', { count: 'exact' });
+
+        if (advanced_filters) {
+            try {
+                const parsedAdvanced = JSON.parse(advanced_filters);
+                parsedAdvanced.forEach(f => {
+                    query = query[f.operator](f.column, f.value);
+                });
+            } catch(e) {
+                console.error("Advanced filter parse error", e);
+            }
+        }
 
         if (city) query = query.eq('shipping_city', city);
         if (loyalty_tier) query = query.eq('loyalty_tier', loyalty_tier);

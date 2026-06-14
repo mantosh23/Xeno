@@ -1,5 +1,5 @@
 import { Card, CardContent } from '../ui/Card';
-import { cn } from '../../lib/utils';
+import { cn } from '../../utils/utils';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface KPIStatCardProps {
@@ -13,6 +13,11 @@ interface KPIStatCardProps {
   isLoading?: boolean;
 }
 
+/**
+ * KPIStatCard Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function KPIStatCard({
   label,
   value,

@@ -1,16 +1,21 @@
-import { apiFetch } from '../../lib/api';
+import { apiFetch } from '../../services/api';
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Sparkles, Send, Bot, User, Loader2 } from 'lucide-react';
-import { useDashboardStore } from '../../store/useDashboardStore';
+import { useAnalyticsStore } from '../../features/dashboard/hooks/useAnalyticsStore';
 
 interface Message {
   role: 'ai' | 'user';
   content: string;
 }
 
+/**
+ * AIInsights Component
+ * 
+ * @returns {JSX.Element}
+ */
 export function AIInsights() {
-  const { analytics } = useDashboardStore();
+  const analytics = useAnalyticsStore((s) => s.analytics);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'ai',

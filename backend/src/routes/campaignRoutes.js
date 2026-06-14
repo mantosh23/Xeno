@@ -47,4 +47,7 @@ router.get('/:id/analytics', ctrl.getCampaignAnalytics);
 // Get single campaign
 router.get('/:id', ctrl.getCampaignById);
 
+// Update campaign
+router.put('/:id', ctrl.updateCampaign);
+
 module.exports = router;

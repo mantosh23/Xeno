@@ -1,42 +1,44 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { CheckCircle2, Eye, ShoppingCart, UserPlus } from 'lucide-react';
 
-const activities = [
-  {
-    icon: CheckCircle2,
-    title: 'Campaign "Summer Revival" launched',
-    time: '2 hours ago',
-    iconBg: 'bg-emerald-50',
-    iconColor: 'text-emerald-600',
-  },
-  {
-    icon: Eye,
-    title: 'WhatsApp campaign opened by 1,380 users',
-    time: '3 hours ago',
-    iconBg: 'bg-purple-50',
-    iconColor: 'text-purple-600',
-  },
-  {
-    icon: ShoppingCart,
-    title: '102 conversions recorded',
-    time: '4 hours ago',
-    iconBg: 'bg-orange-50',
-    iconColor: 'text-orange-600',
-  },
-  {
-    icon: UserPlus,
-    title: 'New audience created: Dormant High Value',
-    time: '1 day ago',
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-600',
-  },
-];
-
 import { useDashboardStore } from '../../store/useDashboardStore';
 
 export function RecentActivity() {
-  const { stats } = useDashboardStore();
-  const isLoading = stats.isLoading;
+  const { stats, analytics, campaigns } = useDashboardStore();
+  const isLoading = stats.isLoading || campaigns.isLoading;
+
+  const topCampaign = campaigns.list && campaigns.list.length > 0 ? campaigns.list[0] : null;
+
+  const activities = [
+    {
+      icon: CheckCircle2,
+      title: topCampaign ? `Campaign "${topCampaign.name}" created` : 'System initialized',
+      time: topCampaign ? new Date(topCampaign.created_at).toLocaleDateString() : 'Just now',
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+    {
+      icon: Eye,
+      title: `Campaigns opened by ${analytics?.summary?.opened?.toLocaleString() || 0} users`,
+      time: 'Recent data',
+      iconBg: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+    },
+    {
+      icon: ShoppingCart,
+      title: `${analytics?.summary?.purchased?.toLocaleString() || 0} conversions recorded`,
+      time: 'Recent data',
+      iconBg: 'bg-orange-50',
+      iconColor: 'text-orange-600',
+    },
+    {
+      icon: UserPlus,
+      title: `CRM Indexed: ${stats?.totalCustomers?.toLocaleString() || 0} customers`,
+      time: 'System data',
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+    },
+  ];
 
   return (
     <Card className="flex flex-col h-full w-full">

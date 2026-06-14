@@ -24,7 +24,7 @@ export function GoalStep({ onContinue, loading, error }: GoalStepProps) {
   };
 
   const handleNext = () => {
-    const goal = goalRef.current?.value?.trim() || store.goal;
+    const goal = goalRef.current?.value?.trim() || store.goal || "I want to bring back customers who purchased before but haven't shopped recently.";
     store.setGoal(goal);
     onContinue();
   };
@@ -50,8 +50,8 @@ export function GoalStep({ onContinue, loading, error }: GoalStepProps) {
           <textarea
             ref={goalRef}
             defaultValue={store.goal}
-            className="w-full flex-1 min-h-[200px] p-4 rounded-[16px] border border-gray-200 text-gray-800 focus:outline-none focus:ring-4 focus:ring-[#7C3AED]/10 focus:border-[#7C3AED] resize-none font-medium text-[13px] leading-relaxed shadow-sm"
-            placeholder="e.g. I want to bring back customers who purchased before…"
+            className="w-full flex-1 min-h-[200px] p-4 rounded-[16px] border border-gray-200 text-gray-800 focus:outline-none focus:ring-4 focus:ring-[#7C3AED]/10 focus:border-[#7C3AED] resize-none font-medium text-[13px] leading-relaxed shadow-sm placeholder-gray-400"
+            placeholder="I want to bring back customers who purchased before but haven't shopped recently."
           />
         </div>
 

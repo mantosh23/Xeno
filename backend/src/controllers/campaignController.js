@@ -1,6 +1,7 @@
 const supabase = require('../config/supabase');
 const { isAIAvailable, callGeminiWithSession, parseAIJson, createSession, generateCreativeImage } = require('../config/gemini');
 const { uploadBase64ToCloudinary } = require('../config/cloudinary');
+const stubChannelService = require('../services/stubChannelService');
 
 // ─── Helper: Aggregate real DB-level stats ────────────────────────────────
 const getRealDBStats = async () => {
@@ -98,6 +99,7 @@ Real data from the StyleHive customer database right now:
 - Loyalty tiers: ${JSON.stringify(stats.loyaltyBreakdown)}
 
 Using this exact data, generate a precise campaign strategy.
+(Note: All campaigns MUST be strictly focused on fashion marketing and apparel/clothing/accessories only.)
 Return ONLY JSON wrapped in a markdown \`\`\`json block:
 {
   "target_audience_description": "specific 1-line description referencing the real data above",
@@ -405,7 +407,7 @@ exports.generateCreatives = async (req, res) => {
   if (!session_id) return res.status(400).json({ success: false, error: 'session_id is required' });
 
   try {
-    const basePrompt = `Professional e-commerce marketing photography for an Indian fashion brand named StyleHive. Campaign name: "${campaign_name || 'Sale'}". Offer: "${offer || 'Discount'}". Main category: "${top_category || 'Apparel'}". ${prompt_context || ''}`;
+    const basePrompt = `Professional e-commerce marketing photography for an Indian fashion brand named StyleHive. Campaign name: "${campaign_name || 'Sale'}". Offer: "${offer || 'Discount'}". Main category: "${top_category || 'Apparel'}". MUST STRICTLY BE A FASHION MARKETING CAMPAIGN FEATURING CLOTHING OR APPAREL. ${prompt_context || ''}`;
 
     const squarePrompt = `${basePrompt} Square 1:1 layout, perfect for feed ads, elegant styling, high fashion editorial photography, sharp focus, clean background, centralized focus, symmetry, no text on image.`;
     const verticalPrompt = `${basePrompt} Vertical portrait layout suitable for Instagram stories, lifestyle photography, natural lighting, high fashion, no text on image.`;
@@ -621,7 +623,8 @@ exports.getSimulatorEvents = async (req, res) => {
     const { data: campaign } = await supabase.from('campaigns').select('*').eq('id', id).single();
     const channels = campaign?.channels || ['WhatsApp', 'Instagram', 'Email'];
     const audience_size = campaign?.audience_size || 0;
-    const eventCount = audience_size > 0 ? Math.min(audience_size, 50) : 35;
+    const countParam = parseInt(req.query.count);
+    const eventCount = countParam > 0 ? countParam : (audience_size > 0 ? Math.min(audience_size, 50) : 35);
 
     // Update status to Active now that it's "launched" and simulating sending
     await supabase.from('campaigns').update({ status: 'Active' }).eq('id', id);
@@ -666,16 +669,26 @@ exports.getSimulatorEvents = async (req, res) => {
 
     // Actually insert the simulated events into the db organically so the analytics dashboard pulses!
     if (dbEventsToInsert.length > 0) {
-      // Don't await this, let it run in the background
-      (async () => {
-        for (const event of dbEventsToInsert) {
-          // Wait 300ms to 1200ms between each event
-          await new Promise(r => setTimeout(r, Math.floor(Math.random() * 900) + 300));
-          event.event_time = new Date().toISOString();
-          const { error: insertErr } = await supabase.from('engagements').insert([event]);
-          if (insertErr) console.warn('Failed to insert simulated engagement:', insertErr.message);
-        }
-      })();
+      if (dbEventsToInsert.length <= 50) {
+        // Slow organic pulse
+        (async () => {
+          for (const event of dbEventsToInsert) {
+            await new Promise(r => setTimeout(r, Math.floor(Math.random() * 900) + 300));
+            event.event_time = new Date().toISOString();
+            await supabase.from('engagements').insert(event);
+          }
+        })();
+      } else {
+        // Fast flood for large amounts
+        const batchSize = 1000;
+        (async () => {
+          for (let i = 0; i < dbEventsToInsert.length; i += batchSize) {
+            const batch = dbEventsToInsert.slice(i, i + batchSize);
+            batch.forEach(e => e.event_time = new Date().toISOString());
+            await supabase.from('engagements').insert(batch);
+          }
+        })();
+      }
     }
 
     const channel_status = {};
@@ -894,14 +907,22 @@ exports.getCampaignAnalytics = async (req, res) => {
 
     (events || []).forEach(e => {
         const type = e.event_type.toLowerCase();
-        if (summary[type] !== undefined) summary[type]++;
 
         if (!channelBreakdown[e.channel]) {
             channelBreakdown[e.channel] = { sent: 0, delivered: 0, opened: 0, clicked: 0, purchased: 0 };
         }
-        if (channelBreakdown[e.channel][type] !== undefined) {
-            channelBreakdown[e.channel][type]++;
-        }
+
+        const inc = (t) => {
+            if (summary[t] !== undefined) summary[t]++;
+            if (channelBreakdown[e.channel][t] !== undefined) channelBreakdown[e.channel][t]++;
+        };
+
+        if (type === 'sent') { inc('sent'); }
+        if (type === 'delivered') { inc('sent'); inc('delivered'); }
+        if (type === 'opened') { inc('sent'); inc('delivered'); inc('opened'); }
+        if (type === 'clicked') { inc('sent'); inc('delivered'); inc('opened'); inc('clicked'); }
+        if (type === 'purchased') { inc('sent'); inc('delivered'); inc('opened'); inc('clicked'); inc('purchased'); }
+        if (type === 'viewed') { inc('sent'); inc('delivered'); inc('opened'); }
     });
 
     res.json({ success: true, summary, channelBreakdown });

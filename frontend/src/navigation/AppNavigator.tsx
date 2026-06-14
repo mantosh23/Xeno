@@ -107,12 +107,13 @@ export const AppNavigator = () => {
   }, [initialize]);
   
   const isLoginPage = location.pathname === '/login';
+  const isStrategyPage = location.pathname.startsWith('/strategy');
 
   return (
     <>
       <ScrollToTop />
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#fff', color: '#111827', padding: '16px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' } }} />
-      <div className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-purple-200 flex flex-col">
+      <div className={`bg-[#FAFAFA] text-gray-900 font-sans selection:bg-purple-200 flex flex-col ${isStrategyPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
         {isLoginPage ? (
           <main className="flex-1">
             <AnimatePresence mode="wait">
@@ -125,15 +126,16 @@ export const AppNavigator = () => {
         ) : (
           <>
             <AppSidebar />
-            <div className={`flex flex-col min-h-screen w-full transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[80px]'}`}>
-              <TopHeader />
-              <main className="flex-1 overflow-x-hidden pt-[72px]">
+            <div className={`flex flex-col w-full transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[80px]'} ${isStrategyPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+              {!isStrategyPage && <TopHeader />}
+              <main className={`flex-1 ${isStrategyPage ? 'min-h-0 h-full overflow-hidden flex flex-col' : 'overflow-x-hidden pt-[72px]'}`}>
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
                     <Route path="/" element={<ProtectedRoute><AnimatedRoute><Dashboard /></AnimatedRoute></ProtectedRoute>} />
                     <Route path="/audience" element={<ProtectedRoute><AnimatedRoute><Audience /></AnimatedRoute></ProtectedRoute>} />
                     <Route path="/automations" element={<ProtectedRoute><AnimatedRoute><Automations /></AnimatedRoute></ProtectedRoute>} />
                     <Route path="/automations/:id" element={<ProtectedRoute><AnimatedRoute><AutomationBuilder /></AnimatedRoute></ProtectedRoute>} />
+                    <Route path="/automations/:id/edit" element={<ProtectedRoute><AnimatedRoute><AutomationBuilder /></AnimatedRoute></ProtectedRoute>} />
                     <Route path="/campaigns" element={<ProtectedRoute><AnimatedRoute><Campaigns /></AnimatedRoute></ProtectedRoute>} />
                     <Route path="/campaigns/:id" element={<ProtectedRoute><AnimatedRoute><CampaignDetails /></AnimatedRoute></ProtectedRoute>} />
 

@@ -1,6 +1,6 @@
-import { ArrowLeft, Calendar, Loader2, Activity, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, Activity, X, Edit, Rocket } from 'lucide-react';
 
-export function CampaignDetailsHeader({ campaign, isSimulating, handleSimulate, navigate }: any) {
+export function CampaignDetailsHeader({ campaign, isSimulating, setIsDevSimulatorOpen, navigate, editCampaignInWizard, handleLaunchNow, handleStopCampaign, isSaving }: any) {
   return (
     <>
       <button onClick={() => navigate('/campaigns')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors font-medium text-[13px]">
@@ -11,9 +11,15 @@ export function CampaignDetailsHeader({ campaign, isSimulating, handleSimulate, 
         <div>
           <div className="flex items-center gap-3 mb-3">
             <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-              campaign.status === 'Active' || campaign.status === 'active' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#A7F3D0]' : 'bg-[#F1F5F9] text-slate-600 border border-slate-200'
+              campaign.status === 'Active' || campaign.status === 'active' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#A7F3D0]' : 
+              campaign.status === 'Stopped' || campaign.status === 'stopped' ? 'bg-red-50 text-red-600 border border-red-200' :
+              'bg-[#F1F5F9] text-slate-600 border border-slate-200'
             }`}>
-              <span className={`h-1.5 w-1.5 rounded-full mr-2 ${campaign.status === 'Active' || campaign.status === 'active' ? 'bg-[#10B981] animate-pulse' : 'bg-slate-400'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full mr-2 ${
+                campaign.status === 'Active' || campaign.status === 'active' ? 'bg-[#10B981] animate-pulse' : 
+                campaign.status === 'Stopped' || campaign.status === 'stopped' ? 'bg-red-500' :
+                'bg-slate-400'
+              }`} />
               {campaign.status || 'Draft'}
             </span>
             <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
@@ -25,18 +31,48 @@ export function CampaignDetailsHeader({ campaign, isSimulating, handleSimulate, 
         </div>
         
         <div className="flex gap-2 flex-wrap justify-end">
-          <button className="px-4 py-2 bg-red-50 border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors text-xs flex items-center gap-2">
-            <X className="h-3 w-3" />
-            Stop Campaign
-          </button>
+          {campaign.status === 'Active' || campaign.status === 'active' || campaign.status === 'Running' ? (
+            <button 
+              onClick={handleStopCampaign}
+              disabled={isSaving}
+              className="px-4 py-2 bg-red-50 border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors text-xs flex items-center gap-2">
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+              {isSaving ? 'Stopping...' : 'Stop Campaign'}
+            </button>
+          ) : (
+            <button 
+              onClick={editCampaignInWizard}
+              className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs flex items-center gap-2 shadow-sm">
+              <Edit className="h-3 w-3" />
+              Edit Campaign
+            </button>
+          )}
 
-          <button 
-            onClick={handleSimulate}
-            disabled={isSimulating}
-            className="px-4 py-2 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1D4ED8] disabled:opacity-70 transition-all text-xs flex items-center gap-2">
-            {isSimulating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Activity className="h-3 w-3" />}
-            {isSimulating ? 'Simulating...' : 'Live Simulator'}
-          </button>
+          {campaign.status === 'Active' || campaign.status === 'active' || campaign.status === 'Running' ? (
+            <button 
+              onClick={() => setIsDevSimulatorOpen(true)}
+              disabled={isSimulating}
+              className="px-4 py-2 bg-[#2563EB] text-white font-medium rounded-lg hover:bg-[#1D4ED8] disabled:opacity-70 transition-all text-xs flex items-center gap-2 shadow-sm">
+              {isSimulating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Activity className="h-3 w-3" />}
+              {isSimulating ? 'Simulating...' : 'Live Simulator'}
+            </button>
+          ) : campaign.status === 'Stopped' || campaign.status === 'stopped' ? (
+            <button 
+              onClick={handleLaunchNow}
+              disabled={isSaving}
+              className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-70 transition-all text-xs flex items-center gap-2 shadow-sm">
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Rocket className="h-3 w-3" />}
+              {isSaving ? 'Resuming...' : 'Resume Campaign'}
+            </button>
+          ) : campaign.status === 'Completed' || campaign.status === 'completed' ? null : (
+            <button 
+              onClick={handleLaunchNow}
+              disabled={isSaving}
+              className="px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] disabled:opacity-70 transition-all text-xs flex items-center gap-2 shadow-sm">
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Rocket className="h-3 w-3" />}
+              {isSaving ? 'Launching...' : 'Launch Campaign'}
+            </button>
+          )}
         </div>
       </div>
     </>

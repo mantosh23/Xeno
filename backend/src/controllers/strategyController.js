@@ -28,8 +28,12 @@ Respond with a helpful, conversational reply.
 If the user asks to build/find an audience, create posters/creatives, write message copy, or design an automation workflow, output a JSON block inside markdown codeblocks (e.g., \`\`\`json { ... } \`\`\`) in your response. You can include multiple actions in one JSON if the user asks for them together.
 CRITICAL: The JSON must be strictly valid. Do not use unescaped newlines in strings. Do not include comments (//) inside the JSON.
 
-CRITICAL RULE FOR CREATIVES: When a user asks for an image/poster, you MUST FIRST ask them follow-up questions about their preferences (e.g., style, color palette, mood, specific subjects) UNLESS they already provided these details. 
+CRITICAL RULE FOR CREATIVES: When a user asks for an image/poster, you MUST FIRST ask them follow-up questions about their preferences (e.g., style, color palette, mood, specific subjects) UNLESS they already provided these details or asked you to do it all on your own. 
 If you are asking a follow-up question, DO NOT output the JSON block for "creatives" yet. Only output the "creatives" JSON block AFTER the user has replied with their preferences.
+
+AUTONOMOUS MODE: If the user explicitly tells you to "finalize everything by your own", "do it all for me", "skip questions", or similar, bypass the rule above. Immediately generate the 'audience', 'content', 'creatives' (making your best guess for the image prompt), AND 'preview' blocks all at once in a single JSON response, so the user can launch immediately.
+
+If you have collected all the necessary details and generated content, explicitly offer to launch the campaign for them. When the user agrees, output the "preview" JSON block so the UI shows the "Finalize & Launch" button.
 
 JSON format:
 {
@@ -164,20 +168,14 @@ JSON format:
            // Notify frontend that image generation has started
            res.write(`data: ${JSON.stringify({ isGeneratingImages: true })}\n\n`);
 
-           const bannerPrompt = `Professional e-commerce marketing photography for an Indian fashion brand. Campaign: "${filters.creatives.campaign_name}". Offer: "${filters.creatives.offer}". ${filters.creatives.creative_prompt}. Wide landscape banner layout, elegant styling, high fashion editorial photography, sharp focus, clean background, no text on image.`;
-           const verticalPrompt = `Professional e-commerce marketing photography for an Indian fashion brand. Campaign: "${filters.creatives.campaign_name}". Offer: "${filters.creatives.offer}". ${filters.creatives.creative_prompt}. Vertical portrait layout suitable for Instagram stories, lifestyle photography, natural lighting, high fashion, no text on image.`;
+           const imagePrompt = `Professional e-commerce marketing photography for an Indian fashion brand. Campaign: "${filters.creatives.campaign_name}". Offer: "${filters.creatives.offer}". ${filters.creatives.creative_prompt}. Square layout, elegant styling, high fashion editorial photography, sharp focus, clean background, no text on image.`;
            
            try {
-               const [bannerBase64, verticalBase64] = await Promise.all([
-                  generateCreativeImage(bannerPrompt, '16:9'),
-                  generateCreativeImage(verticalPrompt, '9:16')
-               ]);
-               const [bannerUrl, verticalUrl] = await Promise.all([
-                  uploadBase64ToCloudinary(bannerBase64),
-                  uploadBase64ToCloudinary(verticalBase64)
-               ]);
-               metaData.creativeResult = [bannerUrl, verticalUrl];
-               res.write(`data: ${JSON.stringify({ creativeResult: [bannerUrl, verticalUrl] })}\n\n`);
+               const imageBase64 = await generateCreativeImage(imagePrompt, '1:1');
+               const imageUrl = await uploadBase64ToCloudinary(imageBase64);
+               
+               metaData.creativeResult = [imageUrl];
+               res.write(`data: ${JSON.stringify({ creativeResult: [imageUrl] })}\n\n`);
            } catch(err) {
                res.write(`data: ${JSON.stringify({ error: 'Failed to generate images: ' + err.message })}\n\n`);
            }

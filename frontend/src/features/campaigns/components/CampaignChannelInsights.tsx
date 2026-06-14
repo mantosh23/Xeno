@@ -29,7 +29,20 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
 
           if (isAd) {
             const chData = analytics?.channelBreakdown?.[channel] || { sent: 0, clicked: 0, purchased: 0 };
-            const sent = Math.max(chData.sent || 0, 1);
+            const sent = Math.max(chData.sent || 0, 0);
+            
+            if (sent === 0) {
+              return (
+                <div key={channel} className="bg-white rounded-2xl p-6 border border-gray-200 flex flex-col items-center justify-center relative overflow-hidden h-[300px] shadow-sm">
+                  <div className="absolute -bottom-6 -right-6 opacity-[0.03] pointer-events-none z-0">
+                    <img src={logoUrl} alt={channel} className="w-40 h-40" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <h4 className="text-gray-900 font-bold mb-2 z-10">{channel} Ads</h4>
+                  <p className="text-gray-500 text-sm z-10">No engagement data yet. Run the Live Simulator.</p>
+                </div>
+              );
+            }
+
             const adData = [
               { name: 'Views', value: chData.sent || 0, color: '#E0E7FF', pct: 100 },
               { name: 'Clicks', value: chData.clicked || 0, color: '#818CF8', pct: Math.round(((chData.clicked || 0) / sent) * 100) },
@@ -104,15 +117,16 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
                 <div className="h-[120px] w-full mt-auto relative z-10">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">Conversion Funnel</p>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={adData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                    <BarChart data={adData} layout="vertical" margin={{ top: 0, right: 80, left: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 600 }} width={45} />
                       <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px', fontWeight: 'bold' }} />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20} label={(props: any) => {
-                        const { x, y, width, height, value, index } = props;
+                        const { x, y, width, height, value } = props;
+                        const pct = sent > 0 ? Math.round((value / sent) * 100) : 0;
                         return (
                           <text x={x + width + 10} y={y + height / 2 + 4} fill="#374151" fontSize={11} fontWeight="bold">
-                            {value.toLocaleString()} ({adData[index].pct}%)
+                            {value.toLocaleString()} ({pct}%)
                           </text>
                         );
                       }}>
@@ -126,8 +140,21 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
               </div>
             );
           } else {
-            const chData = analytics?.channelBreakdown?.[channel] || { sent: 0, delivered: 0, opened: 0, clicked: 0 };
-            const sent = Math.max(chData.sent || 0, 1);
+            const chData = analytics?.channelBreakdown?.[channel] || { sent: 0, delivered: 0, opened: 0, clicked: 0, purchased: 0 };
+            const sent = Math.max(chData.sent || 0, 0);
+
+            if (sent === 0) {
+              return (
+                <div key={channel} className="bg-white rounded-2xl p-6 border border-gray-200 flex flex-col items-center justify-center relative overflow-hidden h-[300px] shadow-sm">
+                  <div className="absolute -bottom-6 -right-6 opacity-[0.03] pointer-events-none z-0">
+                    <img src={logoUrl} alt={channel} className="w-40 h-40" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <h4 className="text-gray-900 font-bold mb-2 z-10">{channel} Broadcast</h4>
+                  <p className="text-gray-500 text-sm z-10">No engagement data yet. Run the Live Simulator.</p>
+                </div>
+              );
+            }
+
             const failed = Math.max(0, (chData.sent || 0) - (chData.delivered || 0));
             
             const broadcastData = [
@@ -136,6 +163,7 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
               { name: 'Failed', value: failed, color: '#FCA5A5', pct: Math.round((failed / sent) * 100) },
               { name: 'Opened', value: chData.opened || 0, color: '#34D399', pct: Math.round(((chData.opened || 0) / sent) * 100) },
               { name: 'Clicked', value: chData.clicked || 0, color: '#059669', pct: Math.round(((chData.clicked || 0) / sent) * 100) },
+              { name: 'Purchased', value: chData.purchased || 0, color: '#047857', pct: Math.round(((chData.purchased || 0) / sent) * 100) },
             ];
 
             return (
@@ -158,15 +186,16 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
                 <div className="h-[200px] w-full mt-4 relative z-10">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">Engagement Funnel</p>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={broadcastData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
+                    <BarChart data={broadcastData} layout="vertical" margin={{ top: 0, right: 80, left: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 600 }} width={60} />
                       <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px', fontWeight: 'bold' }} />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20} label={(props: any) => {
-                        const { x, y, width, height, value, index } = props;
+                        const { x, y, width, height, value } = props;
+                        const pct = sent > 0 ? Math.round((value / sent) * 100) : 0;
                         return (
                           <text x={x + width + 10} y={y + height / 2 + 4} fill="#374151" fontSize={11} fontWeight="bold">
-                            {value.toLocaleString()} ({broadcastData[index].pct}%)
+                            {value.toLocaleString()} ({pct}%)
                           </text>
                         );
                       }}>

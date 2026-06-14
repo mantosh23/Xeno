@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, RotateCw, Bot, Send, Loader2, Tag, Compass, Check } from 'lucide-react';
+import { Sparkles, ArrowRight, RotateCw, Bot, Send, Loader2, Tag, Compass, Check, ArrowUp } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { FiInstagram, FiFacebook } from 'react-icons/fi';
 import { MessageSquare, Mail } from 'lucide-react';
@@ -117,22 +117,29 @@ export function StrategyStep({
                 Offer 30% Off
               </button>
             </div>
-            <div className="flex gap-2 relative">
-              <input 
-                type="text" 
+            <div className="flex flex-col bg-[#f0f4f9] rounded-2xl p-2 shadow-sm border border-transparent focus-within:bg-white focus-within:border-gray-200 focus-within:shadow-md transition-all relative">
+              <textarea 
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') onSendChat(); }}
+                onChange={(e) => {
+                  setChatInput(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSendChat(); } }}
                 placeholder="Ask a follow up question..." 
-                className="flex-1 text-[10px] font-medium p-2 pr-8 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] shadow-sm bg-white"
+                rows={1}
+                className="flex-1 text-[10px] font-medium px-2 py-1 bg-transparent focus:outline-none resize-none"
+                style={{ minHeight: '24px' }}
               />
-              <button 
-                onClick={() => onSendChat()}
-                disabled={!chatInput.trim() || loading}
-                className="absolute right-1 top-1 bottom-1 bg-[#2563EB] text-white px-2 rounded hover:bg-[#1D4ED8] transition-colors shadow-sm disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Send className="h-2.5 w-2.5" />}
-              </button>
+              <div className="flex justify-end mt-1">
+                <button 
+                  onClick={() => onSendChat()}
+                  disabled={!chatInput.trim() || loading}
+                  className="h-6 w-6 bg-[#0f62fe] text-white rounded-full hover:bg-[#0041d0] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3 w-3" />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

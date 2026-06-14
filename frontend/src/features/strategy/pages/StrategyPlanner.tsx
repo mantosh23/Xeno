@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../services/api';
-import { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Loader2, Send, Bot, User, Rocket, X, Lightbulb, Image } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Sparkles, MessageSquare, Clock, Filter, Search, MoreVertical, Settings2, Share2, Plus, Download, Image as ImageIcon, Loader2, Bot, ArrowRight, User, X, ArrowUp } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
@@ -61,6 +61,71 @@ export function StrategyPlanner() {
   const { id: urlSessionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { fetchSessions } = useStrategyStore();
+
+  const [launching, setLaunching] = useState(false);
+
+  const handleLaunchFromChat = async (previewResult: any) => {
+    try {
+      setLaunching(true);
+      
+      // Find latest data from messages
+      let audienceSize = 5000;
+      let estimatedRevenue = 50000;
+      let creatives: string[] = [];
+      let content: any = null;
+      
+      for (const m of messages) {
+        if (m.data) {
+          if (m.data.audienceSize) audienceSize = m.data.audienceSize;
+          if (m.data.estimatedRevenue) estimatedRevenue = m.data.estimatedRevenue;
+        }
+        if (m.creativeResult && m.creativeResult.length > 0) {
+          creatives = m.creativeResult;
+        }
+        if (m.contentResult) {
+          content = m.contentResult;
+        }
+      }
+
+      const res = await apiFetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: previewResult.campaign_name || 'AI Chat Campaign',
+          goal: 'Chat generated campaign',
+          audience_size: audienceSize,
+          potential_revenue: estimatedRevenue,
+          offer: previewResult.campaign_name || 'Special Offer',
+          channels: previewResult.channels || ['WhatsApp'],
+          strategy: {
+            source: 'ai_chat',
+            details: 'Created fully via AI Chat',
+            session_id: sessionId,
+            creatives: creatives.length > 0 ? creatives : undefined,
+            content: content || undefined
+          }
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.campaign) {
+        // Set the status to 'Running' via PUT
+        await apiFetch(`/api/campaigns/${data.campaign.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Running' })
+        });
+        
+        navigate(`/campaigns/${data.campaign.id}`);
+      } else {
+        alert('Failed to launch: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      alert('Error launching campaign: ' + err.message);
+    } finally {
+      setLaunching(false);
+    }
+  };
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -233,10 +298,13 @@ export function StrategyPlanner() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+      // Reset height after send
+      const target = e.target as HTMLTextAreaElement;
+      setTimeout(() => { target.style.height = 'auto'; }, 0);
     }
   };
 
@@ -247,12 +315,12 @@ export function StrategyPlanner() {
   ];
 
   return (
-    <div className="w-full h-screen -mt-[72px] flex flex-col bg-white relative z-0">
+    <div className="w-full h-full flex flex-col bg-white relative z-0 min-h-0">
       
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative min-h-0">
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto w-full relative scroll-smooth">
-          <div className="max-w-4xl mx-auto px-6 md:px-8 pt-[96px] md:pt-[104px] pb-28 space-y-8">
+          <div className="max-w-4xl mx-auto px-6 md:px-8 pt-8 md:pt-12 pb-6 space-y-8">
           {loadingHistory && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
               <Loader2 className="h-8 w-8 text-[#0f62fe] animate-spin" />
@@ -276,7 +344,7 @@ export function StrategyPlanner() {
                   <button 
                     key={i} 
                     onClick={() => handleSend(s)}
-                    className="text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:border-[#0f62fe] hover:text-[#0f62fe] shadow-sm hover:shadow-md px-5 py-3.5 rounded-xl transition-all duration-300 transform hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
+                    className="text-sm font-bold text-[#0f62fe] bg-[#f4f7fc] border-2 border-[#0f62fe] hover:bg-[#e6f0ff] shadow-sm hover:shadow-md px-5 py-3 rounded-full transition-all duration-300 transform hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-4"
                     style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'both' }}
                   >
                     {s}
@@ -364,13 +432,9 @@ export function StrategyPlanner() {
                     
                     {msg.isGeneratingImages && !msg.creativeResult ? (
                       <div className="flex gap-4 items-start">
-                        <div className="relative rounded-xl border border-gray-100 bg-gray-50 flex-1 aspect-video flex flex-col items-center justify-center animate-pulse">
-                           <Image className="h-8 w-8 text-gray-300 mb-2" strokeWidth={1.5} />
-                           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Generating Banner</span>
-                        </div>
-                        <div className="relative rounded-xl border border-gray-100 bg-gray-50 flex-1 aspect-[9/16] max-w-[200px] flex flex-col items-center justify-center animate-pulse">
-                           <Image className="h-8 w-8 text-gray-300 mb-2" strokeWidth={1.5} />
-                           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Generating Vertical</span>
+                        <div className="relative rounded-xl border border-gray-100 bg-gray-50 flex-1 aspect-square max-w-[300px] flex flex-col items-center justify-center animate-pulse">
+                           <ImageIcon className="h-8 w-8 text-gray-300 mb-2" strokeWidth={1.5} />
+                           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Generating Image</span>
                         </div>
                       </div>
                     ) : msg.creativeResult && (
@@ -378,7 +442,7 @@ export function StrategyPlanner() {
                         {msg.creativeResult.map((img, i) => (
                           <div 
                             key={i} 
-                            className="relative rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm flex-1 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:ring-2 hover:ring-[#0f62fe]/50 group"
+                            className="relative rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm flex-1 max-w-[300px] aspect-square cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:ring-2 hover:ring-[#0f62fe]/50 group"
                             onClick={() => setPreviewImage(img.startsWith('http') || img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}`)}
                           >
                             <img src={img.startsWith('http') || img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}`} className="w-full h-auto block" alt="Generated Poster" />
@@ -421,12 +485,12 @@ export function StrategyPlanner() {
                 {msg.previewResult && (
                   <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-w-[500px] mt-2">
                     <h3 className="text-sm font-bold text-[#0f62fe] mb-4 border-b pb-3 flex items-center gap-2">
-                      <Rocket className="h-4 w-4 text-[#0f62fe]" />
+                      <Bot className="h-4 w-4 text-[#0f62fe]" />
                       Campaign Ready to Launch
                     </h3>
                     <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 flex flex-col items-center text-center">
                       <div className="w-16 h-16 bg-[#0f62fe] rounded-full flex items-center justify-center shadow-md mb-4">
-                        <Rocket className="h-8 w-8 text-white ml-1 mb-1" strokeWidth={1.5} />
+                        <Bot className="h-8 w-8 text-white ml-1 mb-1" strokeWidth={1.5} />
                       </div>
                       <h4 className="text-base font-bold text-gray-900 mb-4">Everything looks good!</h4>
                       <div className="grid grid-cols-2 gap-4 w-full text-left bg-white p-4 rounded-lg shadow-sm border border-gray-100">
@@ -448,10 +512,12 @@ export function StrategyPlanner() {
                         </div>
                       </div>
                       <button 
-                        className="w-full mt-5 bg-[#0f62fe] hover:bg-[#0353e9] text-white font-bold py-3 rounded-lg text-sm shadow-md transition-colors flex items-center justify-center gap-2"
-                        onClick={() => alert('Campaign Launched successfully!')}
+                        className="w-full mt-5 bg-[#0f62fe] hover:bg-[#0353e9] text-white font-bold py-3 rounded-lg text-sm shadow-md transition-colors flex items-center justify-center gap-2 disabled:bg-[#0f62fe]/70"
+                        onClick={() => handleLaunchFromChat(msg.previewResult)}
+                        disabled={launching}
                       >
-                        <Rocket className="h-4 w-4" /> Finalize & Launch Campaign
+                        {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} 
+                        {launching ? 'Launching Campaign...' : 'Finalize & Launch Campaign'}
                       </button>
                     </div>
                   </div>
@@ -461,12 +527,12 @@ export function StrategyPlanner() {
                 {msg.insightResult && (
                   <div className="bg-white border border-[#E6E8E1] rounded-xl p-5 shadow-sm min-w-[500px] mt-2 flex gap-4 items-start">
                     <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0 border border-yellow-100">
-                      <Lightbulb className="h-5 w-5 text-yellow-500" />
+                      <Sparkles className="h-5 w-5 text-yellow-500" />
                     </div>
                     <div className="flex-1">
                       <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Strategic Insight</h4>
                       <p className="text-sm font-medium text-gray-900 leading-relaxed">
-                        {typeof msg.insightResult === 'string' ? msg.insightResult : msg.insightResult.message || msg.insightResult.insight}
+                        {typeof msg.insightResult === 'string' ? msg.insightResult : (msg.insightResult as any).message || (msg.insightResult as any).insight}
                       </p>
                     </div>
                   </div>
@@ -480,37 +546,40 @@ export function StrategyPlanner() {
                 <Sparkles className="h-5 w-5 text-[#0f62fe]" />
               </div>
               <div className="bg-gray-50 text-gray-500 border border-gray-100 rounded-2xl rounded-tl-sm p-4 flex flex-col gap-2.5 min-w-[200px]">
-                <div className="h-3 w-3/4 skeleton rounded" />
-                <div className="h-3 w-1/2 skeleton rounded" />
+                <div className="h-3 w-3/4 animate-pulse bg-gray-200 rounded" />
+                <div className="h-3 w-1/2 animate-pulse bg-gray-200 rounded" />
               </div>
             </div>
           )}
 
         </div>
       </div>
+      </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 w-full bg-white/70 backdrop-blur-md border-t border-white/50 p-4 pb-6 shrink-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
-          <div className="max-w-4xl mx-auto w-full">
-            <div className="relative">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your marketing goal or ask a question..."
-                className="w-full pl-5 pr-14 py-4 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-gray-300 focus:outline-none transition-all outline-none"
-                disabled={loading}
-              />
-              <button
-                onClick={() => handleSend()}
-                disabled={loading || !input.trim()}
-                className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-[#0f62fe] text-white rounded-lg hover:bg-[#0353e9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+      <div className="shrink-0 bg-white px-4 pt-4 pb-8 z-20">
+        <div className="max-w-4xl mx-auto relative flex items-end bg-[#f0f4f9] rounded-[28px] p-2 pr-2 transition-all">
+          <textarea
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 400)}px`;
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your idea here..."
+            className="flex-1 bg-transparent px-4 py-3 text-sm text-gray-700 placeholder-gray-500 focus:outline-none resize-none overflow-y-auto block"
+            style={{ minHeight: '44px', maxHeight: '400px' }}
+            disabled={loading}
+            rows={1}
+          />
+          <button
+            onClick={() => handleSend()}
+            disabled={loading || !input.trim()}
+            className="shrink-0 h-10 w-10 mb-0.5 ml-2 flex items-center justify-center rounded-full transition-colors disabled:bg-[#d5d9e0] disabled:text-white disabled:cursor-not-allowed bg-[#0f62fe] text-white hover:bg-[#0353e9]"
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+          </button>
         </div>
       </div>
 

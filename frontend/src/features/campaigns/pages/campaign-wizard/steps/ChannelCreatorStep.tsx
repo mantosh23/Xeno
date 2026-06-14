@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Bot, Send, Loader2, ArrowLeft, Heart, MessageCircle, MoreHorizontal, Check, Bookmark, Globe, Share2, ThumbsUp } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { FiInstagram, FiFacebook } from 'react-icons/fi';
-import { Mail, X } from 'lucide-react';
+import { Mail, X, MessageSquare } from 'lucide-react';
 import { useCampaignStore } from '../../../hooks/useCampaignStore';
 
 interface ChannelCreatorStepProps {

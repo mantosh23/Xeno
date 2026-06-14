@@ -188,7 +188,7 @@ export function useCreateCampaign() {
         setLoading(false);
       }
     }
-    setStep(4);
+    setStep(5);
   }
 
   async function handleGenerateCreatives(customPrompt?: string | any) {
@@ -306,11 +306,11 @@ export function useCreateCampaign() {
           potential_revenue: store.audienceResult?.potential_revenue || 0,
           offer: store.strategy?.recommended_offer || '25% OFF',
           channels: store.strategy?.steps ? store.strategy.steps.map((s: any) => s.channel) : (store.strategy?.recommended_channels || ['WhatsApp']),
-          strategy: { ...store.strategy, creatives: store.creatives, content: store.channelContent, personalizedMessage: store.personalizedMessage },
+          strategy: { ...store.strategy, creatives: store.creatives.length > 0 ? [store.creatives[0]] : [], content: store.channelContent, personalizedMessage: store.personalizedMessage },
         }),
       });
       toast.success('Draft saved successfully!');
-      navigate('/campaigns');
+      navigate(-1);
     } catch (e: any) {
       toast.error(`Save failed: ${e.message}`);
     } finally {
@@ -332,11 +332,12 @@ export function useCreateCampaign() {
           potential_revenue: store.audienceResult?.potential_revenue || 0,
           offer: store.strategy?.recommended_offer || '25% OFF',
           channels: store.strategy?.steps ? store.strategy.steps.map((s: any) => s.channel) : (store.strategy?.recommended_channels || ['WhatsApp']),
-          strategy: { ...store.strategy, creatives: store.creatives, content: store.channelContent, personalizedMessage: store.personalizedMessage },
+          strategy: { ...store.strategy, creatives: store.creatives.length > 0 ? [store.creatives[0]] : [], content: store.channelContent, personalizedMessage: store.personalizedMessage },
         }),
       });
       store.setSavedCampaignId(data.campaign.id);
-      setStep(10);
+      toast.success('Campaign launched successfully!');
+      navigate(-1);
     } catch (e: any) {
       toast.error(`Launch failed: ${e.message}`);
     } finally {
@@ -363,7 +364,7 @@ export function useCreateCampaign() {
     if (step === 5) setStep(2);
     else if (step === 8) setStep(6);
     else if (step > 1) setStep(step - 1);
-    else navigate(-1);
+    else navigate('/');
   }
 
   const channels = store.strategy?.recommended_channels || ['WhatsApp', 'Instagram', 'Email', 'Facebook', 'SMS'];

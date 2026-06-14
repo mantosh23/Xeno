@@ -80,7 +80,7 @@ export function AppSidebar() {
 
   return (
     <aside className={cn(
-      "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-gray-100 bg-white md:flex transition-all duration-300 ease-in-out",
+      "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-gray-100 bg-white md:flex transition-all duration-300 ease-in-out",
       isSidebarExpanded ? "w-[240px]" : "w-[80px]"
     )}>
       {/* Toggle Button */}
@@ -161,9 +161,9 @@ export function AppSidebar() {
               <div key={session.id} className="relative group">
                 <button
                   onClick={() => handleLoadChat(session.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all pr-10 ${urlSessionId === session.id ? 'bg-blue-50 border border-blue-100 shadow-sm' : 'hover:bg-white border border-transparent'}`}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-all pr-10 ${urlSessionId === session.id ? 'bg-[#0f62fe] text-white shadow-sm' : 'hover:bg-white border border-transparent'}`}
                 >
-                  <div className={`text-sm font-semibold truncate ${urlSessionId === session.id ? 'text-[#0f62fe]' : 'text-gray-600'}`}>
+                  <div className={`text-sm font-semibold truncate ${urlSessionId === session.id ? 'text-white' : 'text-gray-600'}`}>
                     {session.title}
                   </div>
                 </button>

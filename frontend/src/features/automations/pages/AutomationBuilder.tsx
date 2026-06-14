@@ -1,7 +1,7 @@
 import { apiFetch } from '../../../services/api';
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowLeft, Send, Loader2, User, Zap, Save, MessageSquare, Mail, Smartphone, Bot } from 'lucide-react';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Sparkles, ArrowLeft, Send, Loader2, User, Zap, Save, MessageSquare, Mail, Smartphone, Bot, ArrowUp, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAutomationsStore } from '../hooks/useAutomationsStore';
 import { usePageCacheStore } from '../../dashboard/hooks/usePageCacheStore';
@@ -30,12 +30,12 @@ export const AutomationBuilder = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getCache, setCache } = usePageCacheStore();
-  const cacheKey = 'AutomationBuilder';
+  const cacheKey = `AutomationBuilder_${id || 'new'}`;
   const cached = getCache(cacheKey) || {};
 
   const [input, setInput] = useState(cached.input || '');
 
-  const [activeChannels, setActiveChannels] = useState<string[]>(['WhatsApp']);
+  const [activeChannels, setActiveChannels] = useState<string[]>(cached.activeChannels || ['WhatsApp']);
   const [activePreviewChannel, setActivePreviewChannel] = useState<string>('');
 
   const [copyMessages, setCopyMessages] = useState<Message[]>([
@@ -72,7 +72,14 @@ export const AutomationBuilder = () => {
   };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState(cached.step || 1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const step = parseInt(searchParams.get('step') || String(cached.step || 1), 10);
+  const setStep = (newStep: number) => {
+    setSearchParams(prev => {
+      prev.set('step', newStep.toString());
+      return prev;
+    }, { replace: true });
+  };
   const [messages, setMessages] = useState<Message[]>(cached.messages || [
     { role: 'ai', text: 'Hi! Tell me what kind of automation you want to create. For example: "Wait 2 hours after a cart is abandoned and send a WhatsApp reminder."' }
   ]);
@@ -80,9 +87,48 @@ export const AutomationBuilder = () => {
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fetchAutomations = useAutomationsStore((s) => s.fetchAutomations);
+  const automations = useAutomationsStore((s) => s.automations);
+  const deleteAutomation = useAutomationsStore((s) => s.deleteAutomation);
 
-  const stateRef = useRef({ input, messages, generatedAutomation, step });
-  stateRef.current = { input, messages, generatedAutomation, step };
+  const stateRef = useRef({ input, messages, generatedAutomation, step, activeChannels });
+  stateRef.current = { input, messages, generatedAutomation, step, activeChannels };
+
+  const location = useLocation();
+  const isEditRoute = location.pathname.endsWith('/edit');
+  const isViewingMode = Boolean(id && id !== 'new' && !isEditRoute);
+
+  useEffect(() => {
+    if ((isViewingMode || isEditRoute) && automations.list.length === 0) {
+      fetchAutomations();
+    }
+  }, [id, isViewingMode, isEditRoute]);
+
+  useEffect(() => {
+    if ((isViewingMode || isEditRoute) && automations.list.length > 0) {
+      const existing = automations.list.find((a) => String(a.id) === id);
+      if (existing) {
+        setGeneratedAutomation(existing);
+        
+        // Pre-fill chat if we enter edit mode and chat is empty
+        if (isEditRoute && messages.length <= 1) {
+          setMessages([
+            { role: 'ai', text: `You are now editing the **${existing.title}** automation.` },
+            { role: 'ai', text: `Here is the current setup:\n\n**Trigger:** ${existing.triggers}\n\n**Action:** ${existing.actions}\n\nWhat would you like to change?` }
+          ]);
+        }
+      }
+    }
+  }, [id, automations.list, isViewingMode, isEditRoute]);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    if (window.confirm('Are you sure you want to delete this automation? This action cannot be undone.')) {
+      const success = await deleteAutomation(id);
+      if (success) {
+        navigate('/automations');
+      }
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -185,6 +231,9 @@ export const AutomationBuilder = () => {
 
   const handleSaveAutomation = async () => {
     if (!generatedAutomation) return;
+    const hasCopy = Boolean(generatedAutomation.message_copy || generatedAutomation.copies || generatedAutomation.description);
+    if (!hasCopy) return;
+    
     setSaving(true);
     try {
       const payload = {
@@ -200,13 +249,20 @@ export const AutomationBuilder = () => {
         stats_converted: 0
       };
 
-      // Since we don't have a POST endpoint in the plan yet, let's just do a PUT if id exists, or alert if new.
-      // Wait, we need a POST endpoint for new automations!
-      const res = await apiFetch('/api/automations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      let res;
+      if (id && id !== 'new') {
+        res = await apiFetch(`/api/automations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await apiFetch('/api/automations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (res.ok) {
         await fetchAutomations();
@@ -226,26 +282,41 @@ export const AutomationBuilder = () => {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 -mt-[72px] relative z-40">
-      {/* Topbar */}
-      <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 h-[72px]">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/automations')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-extrabold text-gray-900">AI Automation Builder</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Tell the AI what you want to automate</p>
+    <div className="flex items-start justify-center min-h-[calc(100vh-72px)] p-6 md:p-8 bg-[#FAFAFA]">
+      <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 w-full max-w-[1200px] h-[calc(100vh-120px)] relative flex flex-col overflow-hidden">
+      {/* Topbar (Builder Only) */}
+      {!isViewingMode && step === 1 && (
+        <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 h-[72px]">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => {
+                if (step === 1) navigate('/automations');
+                else setStep(step - 1);
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50 flex items-center gap-1.5"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                {step === 1 ? 'Back' : 'Back'}
+              </span>
+            </button>
+            <div className="h-8 w-px bg-gray-200"></div>
+            <div>
+              <h1 className="text-xl font-extrabold text-gray-900">AI Automation Builder</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Tell the AI what you want to automate</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Step 1: Automation Builder */}
-      {step === 1 && (
+      {!isViewingMode && (
+        <>
+          {/* Step 1: Automation Builder */}
+          {step === 1 && (
         <div className="flex-1 flex overflow-hidden">
           {/* Left Side: Chat Area */}
-          <div className="w-[400px] shrink-0 flex flex-col border-r border-gray-200 bg-white relative">
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-28">
+          <div className="w-[400px] shrink-0 flex flex-col border-r border-gray-200 bg-white min-h-0 relative">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-6">
             {messages.length === 1 && (
               <div className="flex flex-col items-center justify-center pt-10 pb-6 text-center animate-in fade-in zoom-in-95 duration-500">
                 <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center mb-6 shadow-xl shadow-purple-500/20">
@@ -296,23 +367,33 @@ export const AutomationBuilder = () => {
           </div>
 
           {/* Input Area */}
-          <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 p-4">
-            <div className="relative">
-              <input
-                type="text"
+          <div className="shrink-0 bg-white px-4 pt-4 pb-8 z-20 w-full border-t border-gray-100">
+            <div className="relative flex items-end bg-[#f5f3ff] rounded-[28px] p-2 pr-2 transition-all">
+              <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 400)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Describe your automation..."
-                className="w-full pl-5 pr-14 py-4 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] outline-none transition-all"
+                className="flex-1 bg-transparent px-4 py-3 text-sm text-gray-700 placeholder-gray-500 focus:outline-none resize-none overflow-y-auto block"
+                style={{ minHeight: '44px', maxHeight: '400px' }}
                 disabled={loading}
+                rows={1}
               />
               <button
                 onClick={() => handleSend()}
                 disabled={loading || !input.trim()}
-                className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-[#8B5CF6] text-white rounded-lg hover:bg-[#6D28D9] transition-colors disabled:opacity-50"
+                className="shrink-0 h-10 w-10 mb-0.5 ml-2 flex items-center justify-center rounded-full transition-colors disabled:bg-[#e9d5ff] disabled:text-white disabled:cursor-not-allowed bg-[#8B5CF6] text-white hover:bg-[#6D28D9]"
               >
-                <Send className="h-4 w-4" />
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
               </button>
             </div>
           </div>
@@ -324,7 +405,7 @@ export const AutomationBuilder = () => {
             <div className="w-full max-w-sm my-auto animate-in fade-in zoom-in-95 duration-500 pb-8 flex flex-col gap-3">
               {/* Header Card */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative p-5 text-center">
-                <div className="absolute -top-3 -right-3 text-[10px] font-bold bg-green-500 text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                <div className="absolute top-3 right-3 text-[9px] font-bold bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-widest">
                   Ready
                 </div>
                 <div className="w-12 h-12 bg-[#F5F3FF] rounded-xl mx-auto flex items-center justify-center mb-3 text-[#8B5CF6]">
@@ -384,9 +465,6 @@ export const AutomationBuilder = () => {
                 <h2 className="text-xl font-bold text-gray-900">Choose the Channel</h2>
                 <p className="text-sm text-gray-500 mt-1">Select where you want this automation to run.</p>
               </div>
-              <button onClick={() => setStep(1)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                Back to Builder
-              </button>
             </div>
 
             <div className="p-8">
@@ -431,22 +509,19 @@ export const AutomationBuilder = () => {
       {step === 3 && generatedAutomation && (
         <div className="flex-1 flex flex-col bg-gray-50 animate-in fade-in zoom-in-95 duration-500 relative h-full">
            {/* Topbar for Step 3 */}
-           <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 h-[72px]">
+           <div className="bg-white border-b border-gray-200 pl-[160px] pr-6 flex items-center justify-between shrink-0 h-[72px]">
              <div>
                <h2 className="text-xl font-bold text-gray-900">Preview & Finalize</h2>
                <p className="text-sm text-gray-500">Edit your message copies and review how they look.</p>
              </div>
              <div className="flex items-center gap-3">
-               <button onClick={() => setStep(2)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                 Back to Channels
-               </button>
                <button 
                   onClick={handleSaveAutomation}
-                  disabled={saving}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70"
+                  disabled={saving || !(generatedAutomation?.message_copy || generatedAutomation?.copies || generatedAutomation?.description)}
+                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 fill-current" />}
-                  Launch Automation
+                  {id && id !== 'new' ? 'Save Changes' : 'Launch Automation'}
                </button>
              </div>
            </div>
@@ -591,7 +666,7 @@ export const AutomationBuilder = () => {
                         const bgStyle = ch === 'WhatsApp' ? { background: "repeating-linear-gradient(45deg,#EFEAE2,#EFEAE2 10px,#E5DFDA 10px,#E5DFDA 20px)" } : { background: '#FFFFFF' };
                         const text = generatedAutomation.copies 
                               ? (generatedAutomation.copies[ch] || Object.values(generatedAutomation.copies)[0])
-                              : generatedAutomation.message_copy;
+                              : (generatedAutomation.message_copy || generatedAutomation.description || '');
                         const renderText = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
 
                         return (
@@ -628,6 +703,138 @@ export const AutomationBuilder = () => {
            </div>
         </div>
       )}
+      </>
+      )}
+
+      {isViewingMode && generatedAutomation && (
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-gray-50 animate-in fade-in duration-300">
+          <div className="max-w-[1100px] mx-auto w-full font-sans">
+            
+            <button onClick={() => navigate('/automations')} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 transition-colors font-medium text-[13px]">
+              <ArrowLeft className="h-4 w-4" /> Back to Automations
+            </button>
+
+            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                    generatedAutomation.status === 'active' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#A7F3D0]' : 'bg-[#F1F5F9] text-slate-600 border border-slate-200'
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full mr-2 ${generatedAutomation.status === 'active' ? 'bg-[#10B981] animate-pulse' : 'bg-slate-400'}`} />
+                    {generatedAutomation.status || 'Draft'}
+                  </span>
+                  {generatedAutomation.created_at && (
+                    <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                      Created on {new Date(generatedAutomation.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">{generatedAutomation.title}</h1>
+                <p className="text-sm text-gray-500 leading-relaxed max-w-2xl">{generatedAutomation.description}</p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    navigate(`/automations/${id}/edit`);
+                  }} 
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors text-[13px] shadow-sm flex items-center gap-2"
+                >
+                  <Bot className="h-4 w-4" /> Edit with AI
+                </button>
+                <button 
+                  onClick={handleDelete} 
+                  className="px-5 py-2.5 bg-red-50 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors text-[13px] shadow-sm flex items-center gap-2"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <div className="xl:col-span-2 space-y-8">
+                 {/* Workflow Overview */}
+                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                       <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                         <Zap className="h-5 w-5 text-amber-500" />
+                         Workflow Rules
+                       </h3>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50">
+                       <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                           <Zap className="h-3 w-3" /> Trigger Condition
+                         </p>
+                         <div className="font-semibold text-gray-900">
+                           {renderStringOrJson(generatedAutomation.triggers)}
+                         </div>
+                       </div>
+                       <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                         <p className="text-[10px] font-bold text-[#0f62fe] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                           <Sparkles className="h-3 w-3" /> Action Execution
+                         </p>
+                         <div className="font-semibold text-[#0f62fe]">
+                           {renderStringOrJson(generatedAutomation.actions)}
+                         </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Performance Insights */}
+                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                       <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                         <Activity className="h-5 w-5 text-green-500" />
+                         Performance Metrics
+                       </h3>
+                    </div>
+                    <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+                       <div className="bg-[#F8FAFC] p-5 rounded-xl border border-[#E2E8F0]">
+                          <p className="text-xs text-slate-500 font-medium mb-1">Messages Sent</p>
+                          <p className="text-3xl font-black text-slate-900">{generatedAutomation.stats_sent?.toLocaleString() || 0}</p>
+                       </div>
+                       <div className="bg-[#ECFDF5] p-5 rounded-xl border border-[#D1FAE5]">
+                          <p className="text-xs text-[#047857] font-medium mb-1">Conversions</p>
+                          <p className="text-3xl font-black text-[#065F46]">{generatedAutomation.stats_converted?.toLocaleString() || 0}</p>
+                       </div>
+                       <div className="bg-[#EFF6FF] p-5 rounded-xl border border-[#DBEAFE] col-span-2 md:col-span-1">
+                          <p className="text-xs text-[#1D4ED8] font-medium mb-1">Conversion Rate</p>
+                          <p className="text-3xl font-black text-[#1E3A8A]">
+                            {generatedAutomation.stats_sent > 0 
+                               ? ((generatedAutomation.stats_converted / generatedAutomation.stats_sent) * 100).toFixed(1) + '%'
+                               : '0%'}
+                          </p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Sidebar Info */}
+              <div className="space-y-8">
+                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <h3 className="text-sm font-bold text-gray-900 mb-4">Automation Configuration</h3>
+                    <div className="space-y-4">
+                       <div className="flex items-center justify-between text-sm">
+                         <span className="text-gray-500">Channels</span>
+                         <span className="font-semibold text-gray-900">WhatsApp</span>
+                       </div>
+                       <div className="flex items-center justify-between text-sm">
+                         <span className="text-gray-500">Send Time</span>
+                         <span className="font-semibold text-gray-900">Immediate</span>
+                       </div>
+                       <div className="flex items-center justify-between text-sm">
+                         <span className="text-gray-500">Frequency Limit</span>
+                         <span className="font-semibold text-gray-900">1 per user/day</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 };

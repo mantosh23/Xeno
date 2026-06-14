@@ -22,3 +22,27 @@ exports.handleEvent = async (req, res) => {
         res.status(500).json({ success: false, error: e.message });
     }
 };
+
+/**
+ * @function handleBulkEvents
+ * @description Ingests a bulk array of events from the channel service.
+ */
+exports.handleBulkEvents = async (req, res) => {
+    try {
+        const { events } = req.body;
+        
+        console.log(`🔔 [Webhook] Bulk receipt of ${events.length} events from Channel Service`);
+
+        // Insert into engagements table
+        const { error } = await supabase.from('engagements').insert(events);
+        
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json({ success: true, message: `Successfully logged ${events.length} events` });
+    } catch (e) {
+        console.error('[Webhook Error]', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+};

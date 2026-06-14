@@ -19,7 +19,6 @@ export function Campaigns() {
   const campaigns = useCampaignsListStore((s) => s.campaigns);
   const fetchCampaigns = useCampaignsListStore((s) => s.fetchCampaigns);
   const deleteCampaign = useCampaignsListStore((s) => s.deleteCampaign);
-  const fetchCampaignAnalytics = useAnalyticsStore((s) => s.fetchCampaignAnalytics);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -34,17 +33,13 @@ export function Campaigns() {
     clearCache('CreateCampaign');
   };
 
-  const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
-  const [campaignAnalytics, setCampaignAnalytics] = useState<any | null>(null);
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
 
   const filteredCampaigns = campaigns.list.filter((c) => {
     const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || c.status === statusFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'All' || c.status?.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -59,14 +54,6 @@ export function Campaigns() {
       await deleteCampaign(id);
       setDeletingId(null);
     }
-  };
-
-  const handleOpenDetails = async (campaign: any) => {
-    setSelectedCampaign(campaign);
-    setIsLoadingAnalytics(true);
-    const analytics = await fetchCampaignAnalytics(campaign.id);
-    setCampaignAnalytics(analytics);
-    setIsLoadingAnalytics(false);
   };
 
   return (
@@ -92,6 +79,7 @@ export function Campaigns() {
             <option value="All">All Status</option>
             <option value="Active">Active</option>
             <option value="Draft">Draft</option>
+            <option value="Stopped">Stopped</option>
           </select>
         </div>
         <Link 
@@ -136,9 +124,11 @@ export function Campaigns() {
               const pseudoRandom = ((seed * 9301 + 49297) % 233280) / 233280;
               return (pseudoRandom * (max - min) + min).toFixed(1);
             };
-            const openRate = getStableStat(camp.id, 0, 40, 65);
-            const clickRate = getStableStat(camp.id, 10, 8, 20);
-            const conversion = getStableStat(camp.id, 20, 1, 5);
+            const isActive = camp.status === 'Active';
+            const openRate = isActive ? getStableStat(camp.id, 0, 40, 65) : '0.0';
+            const clickRate = isActive ? getStableStat(camp.id, 10, 8, 20) : '0.0';
+            const conversion = isActive ? getStableStat(camp.id, 20, 1, 5) : '0.0';
+            const revenue = isActive ? (camp.potential_revenue ? (camp.potential_revenue / 100000).toFixed(1) : '2.2') : '0.0';
 
             return (
               <div 
@@ -163,7 +153,17 @@ export function Campaigns() {
                   {/* Right Content Section */}
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="mb-3">
-                      <h3 className="text-[14px] font-bold text-gray-900 tracking-tight leading-snug line-clamp-2 mb-1">{camp.name || 'Summer Revival'}</h3>
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="text-[14px] font-bold text-gray-900 tracking-tight leading-snug line-clamp-2 pr-2">{camp.name || 'Summer Revival'}</h3>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          camp.status === 'Active' ? 'bg-green-100 text-green-700' :
+                          camp.status === 'Draft' ? 'bg-gray-100 text-gray-600' :
+                          camp.status === 'Stopped' || camp.status === 'stopped' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {camp.status || 'Draft'}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-gray-500 font-medium">
                         {(camp.channels || ['WhatsApp']).join(' • ')} • Started {new Date(camp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
@@ -184,7 +184,7 @@ export function Campaigns() {
                       </div>
                       <div>
                         <p className="text-[10px] font-medium text-gray-500 mb-0.5">Revenue</p>
-                        <p className="text-[14px] font-bold text-[#10B981]">₹{(camp.potential_revenue ? (camp.potential_revenue / 100000).toFixed(1) : '2.2')}L</p>
+                        <p className="text-[14px] font-bold text-[#10B981]">₹{revenue}L</p>
                       </div>
                     </div>
                   </div>

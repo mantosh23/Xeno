@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Send, Loader2, User, Video } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, Loader2, User, Video, ArrowUp, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { apiFetch } from '../../../../../services/api';
 
@@ -93,7 +93,7 @@ export const ReelsGenerator = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -109,7 +109,7 @@ export const ReelsGenerator = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-50 -mt-[72px] relative z-40">
       {/* Topbar */}
-      <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 h-[72px]">
+      <div className="bg-white border-b border-gray-200 px-6 md:pl-10 flex items-center justify-between shrink-0 h-[72px]">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
             <ArrowLeft className="h-5 w-5" />
@@ -126,9 +126,9 @@ export const ReelsGenerator = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col relative w-full bg-white">
+        <div className="flex-1 flex flex-col relative w-full bg-white min-h-0">
           <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10">
             <div className="max-w-4xl mx-auto space-y-6">
               {messages.length === 0 && (
@@ -194,23 +194,28 @@ export const ReelsGenerator = () => {
           </div>
 
           {/* Input Area */}
-          <div className="shrink-0 w-full bg-white border-t border-gray-100 p-4 md:p-6 z-10">
-            <div className="relative max-w-4xl mx-auto">
-              <input
-                type="text"
+          <div className="shrink-0 bg-white px-4 pt-4 pb-8 z-20">
+            <div className="max-w-4xl mx-auto relative flex items-end bg-[#f0f4f9] rounded-[28px] p-2 pr-2 transition-all">
+              <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 400)}px`;
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your idea here..."
-                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f62fe]/20 focus:border-[#0f62fe] transition-all shadow-inner"
+                className="flex-1 bg-transparent px-4 py-3 text-sm text-gray-700 placeholder-gray-500 focus:outline-none resize-none overflow-y-auto block"
+                style={{ minHeight: '44px', maxHeight: '400px' }}
                 disabled={loading}
+                rows={1}
               />
               <button
                 onClick={() => handleSend(input)}
-                disabled={!input.trim() || loading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#0f62fe] hover:bg-[#0041d0] disabled:bg-gray-300 text-white rounded-lg transition-colors shadow-sm"
+                disabled={loading || !input.trim()}
+                className="shrink-0 h-10 w-10 mb-0.5 ml-2 flex items-center justify-center rounded-full transition-colors disabled:bg-[#d5d9e0] disabled:text-white disabled:cursor-not-allowed bg-[#0f62fe] text-white hover:bg-[#0353e9]"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
               </button>
             </div>
           </div>

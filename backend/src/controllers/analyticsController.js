@@ -32,23 +32,28 @@ exports.getDashboardData = async (req, res) => {
         // If there are events, we'll bucket them.
         events.forEach(e => {
             const type = e.event_type.toLowerCase();
-            if (summary[type] !== undefined) summary[type]++;
-
+            
             if (!channelBreakdown[e.channel]) {
                 channelBreakdown[e.channel] = { sent: 0, delivered: 0, opened: 0, clicked: 0, purchased: 0 };
             }
-            if (channelBreakdown[e.channel][type] !== undefined) {
-                channelBreakdown[e.channel][type]++;
-            }
-
-            // Grouping by Date for the chart
+            
             const dateStr = new Date(e.event_time).toISOString().split('T')[0];
             if (!timeSeriesMap[dateStr]) {
                 timeSeriesMap[dateStr] = { date: dateStr, sent: 0, opened: 0, clicked: 0, purchased: 0 };
             }
-            if (timeSeriesMap[dateStr][type] !== undefined) {
-                timeSeriesMap[dateStr][type]++;
-            }
+
+            const inc = (t) => {
+                if (summary[t] !== undefined) summary[t]++;
+                if (channelBreakdown[e.channel][t] !== undefined) channelBreakdown[e.channel][t]++;
+                if (timeSeriesMap[dateStr][t] !== undefined) timeSeriesMap[dateStr][t]++;
+            };
+
+            if (type === 'sent') { inc('sent'); }
+            if (type === 'delivered') { inc('sent'); inc('delivered'); }
+            if (type === 'opened') { inc('sent'); inc('delivered'); inc('opened'); }
+            if (type === 'clicked') { inc('sent'); inc('delivered'); inc('opened'); inc('clicked'); }
+            if (type === 'purchased') { inc('sent'); inc('delivered'); inc('opened'); inc('clicked'); inc('purchased'); }
+            if (type === 'viewed') { inc('sent'); inc('delivered'); inc('opened'); }
         });
 
         // Convert timeSeriesMap to array

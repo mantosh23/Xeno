@@ -140,7 +140,7 @@ interface CampaignState {
 
 const initialState = {
   step: 1,
-  goal: "I want to bring back customers who purchased before but haven't shopped recently.",
+  goal: "",
   strategy: null,
   audienceCriteria: { inactive_days: 60, min_spend: 0, age_min: 18, age_max: 45 },
   audienceResult: null,

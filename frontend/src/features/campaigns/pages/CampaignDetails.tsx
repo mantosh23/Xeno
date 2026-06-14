@@ -6,6 +6,7 @@ import { CampaignChannelInsights } from '../components/CampaignChannelInsights';
 import { CampaignStrategyBrief } from '../components/CampaignStrategyBrief';
 import { CampaignCreatives } from '../components/CampaignCreatives';
 import { CampaignEditModal } from '../components/CampaignEditModal';
+import { DevSimulatorModal } from '../components/DevSimulatorModal';
 
 /**
  * CampaignDetails Component
@@ -47,7 +48,14 @@ export const CampaignDetails = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
-          <CampaignChannelInsights {...details} />
+          {details.campaign.status === 'Active' ? (
+            <CampaignChannelInsights {...details} />
+          ) : (
+            <div className="bg-white rounded-[24px] p-8 border border-gray-100 flex flex-col items-center justify-center text-center h-[400px]">
+               <h3 className="text-lg font-bold text-gray-900 mb-2">Campaign Not Launched</h3>
+               <p className="text-sm text-gray-500 max-w-sm">Launch this campaign to start seeing deep channel insights, live engagement tracking, and revenue performance.</p>
+            </div>
+          )}
         </div>
         <div className="space-y-8">
           <CampaignStrategyBrief {...details} />
@@ -56,6 +64,7 @@ export const CampaignDetails = () => {
       </div>
 
       <CampaignEditModal {...details} />
+      <DevSimulatorModal isOpen={details.isDevSimulatorOpen} onClose={() => details.setIsDevSimulatorOpen(false)} campaign={details.campaign} />
     </div>
   );
 };

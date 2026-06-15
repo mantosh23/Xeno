@@ -43,7 +43,7 @@ export const CampaignDetails = () => {
   }
 
   return (
-    <div className="flex-1 p-6 max-w-[1458px] mx-auto w-full font-sans">
+    <div className="flex-1 p-4 sm:p-6 max-w-[1458px] mx-auto w-full font-sans">
       <CampaignDetailsHeader {...details} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

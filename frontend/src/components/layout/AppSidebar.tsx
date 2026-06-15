@@ -39,9 +39,10 @@ const navItems = [
 /**
  * AppSidebar Component
  * 
+ * @param {{ isMobileMenuOpen: boolean, setMobileMenuOpen: (open: boolean) => void }} props
  * @returns {JSX.Element}
  */
-export function AppSidebar() {
+export function AppSidebar({ isMobileMenuOpen, setMobileMenuOpen }: { isMobileMenuOpen: boolean, setMobileMenuOpen: (open: boolean) => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { sessions, fetchSessions, deleteSession } = useStrategyStore();
@@ -79,35 +80,43 @@ export function AppSidebar() {
   };
 
   return (
-    <aside className={cn(
-      "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-gray-100 bg-white md:flex transition-all duration-300 ease-in-out",
-      isSidebarExpanded ? "w-[240px]" : "w-[80px]"
-    )}>
-      {/* Toggle Button */}
-      <button 
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-8 bg-white border border-gray-200 rounded-full p-1 text-gray-400 hover:text-gray-900 shadow-sm z-50 transition-colors"
-      >
-        {isSidebarExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-      </button>
+    <>
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside className={cn(
+        "fixed top-0 z-50 h-screen flex-col border-r border-gray-100 bg-white flex transition-all duration-300 ease-in-out",
+        isSidebarExpanded ? "w-[240px]" : "w-[240px] md:w-[80px]",
+        isMobileMenuOpen ? "left-0" : "-left-[240px] md:left-0"
+      )}>
+        {/* Toggle Button (Desktop Only) */}
+        <button 
+          onClick={toggleSidebar}
+          className="hidden md:flex absolute -right-3 top-8 bg-white border border-gray-200 rounded-full p-1 text-gray-400 hover:text-gray-900 shadow-sm z-50 transition-colors"
+        >
+          {isSidebarExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
 
       {/* Logo Section */}
-      <div className={`flex items-center ${isSidebarExpanded ? 'gap-3 px-6' : 'justify-center px-0'} py-6 h-[80px]`}>
+      <div className={cn("flex shrink-0 items-center border-b border-gray-100 py-6", !isSidebarExpanded ? "md:justify-center px-6 md:px-0 h-[80px]" : "h-[80px] px-6 gap-3")}>
         <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden flex-shrink-0 bg-white border border-gray-100 shadow-sm">
           <img src={logoUrl} alt="StyleHive Logo" className="absolute w-[180%] max-w-[180%] h-auto top-[-20%]" />
         </div>
-        {isSidebarExpanded && (
-          <div className="flex flex-col justify-center animate-in fade-in duration-200">
-            <h1 className="text-base font-bold text-gray-900 leading-tight">StyleHive</h1>
-            <p className="text-[9px] text-gray-500 font-medium">AI Marketing OS</p>
-          </div>
-        )}
+        <div className={cn("flex flex-col justify-center animate-in fade-in duration-200", !isSidebarExpanded && "md:hidden")}>
+          <h1 className="text-base font-bold text-gray-900 leading-tight">StyleHive</h1>
+          <p className="text-[9px] text-gray-500 font-medium">AI Marketing OS</p>
+        </div>
       </div>
 
       {/* Scrollable Area */}
-      <div className={cn("flex-1 flex flex-col", isSidebarExpanded ? "overflow-y-auto custom-scrollbar" : "overflow-visible")}>
+      <div className={cn("flex-1 flex flex-col overflow-y-auto custom-scrollbar", !isSidebarExpanded && "md:overflow-visible")}>
         {/* Navigation */}
-        <nav className={`space-y-[2px] py-2 ${isSidebarExpanded ? 'px-4' : 'px-2'}`}>
+        <nav className={cn("space-y-[2px] py-2", !isSidebarExpanded ? "md:px-2 px-4" : "px-4")}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.label !== 'New Chat' && (location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)));
@@ -131,36 +140,38 @@ export function AppSidebar() {
             <Link
               key={item.label}
               to={targetPath}
+              onClick={() => setMobileMenuOpen(false)}
               className={cn(
                 'group relative flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold transition-colors',
-                isSidebarExpanded ? 'px-3' : 'justify-center px-0',
+                !isSidebarExpanded ? 'md:justify-center md:px-0 px-3' : 'px-3',
                 isActive
                   ? 'bg-[#0f62fe] text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               )}
             >
               <Icon className={cn('h-5 w-5 shrink-0 stroke-[2px]', isActive ? 'text-white' : 'text-slate-500')} />
-              {isSidebarExpanded && <span className="truncate">{item.label}</span>}
-              {!isSidebarExpanded && (
-                <div className="absolute left-full ml-4 hidden group-hover:block z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
-                  {item.label}
-                  <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-                </div>
-              )}
+              <span className={cn("truncate", !isSidebarExpanded && "md:hidden")}>{item.label}</span>
+              
+              <div className={cn("absolute left-full ml-4 z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl", isSidebarExpanded ? "hidden" : "hidden md:group-hover:block")}>
+                {item.label}
+                <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+              </div>
             </Link>
           );
         })}
       </nav>
 
       {/* Chat History Section */}
-      {isSidebarExpanded && (
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex-1">
+        <div className={cn("p-4 border-t border-gray-100 bg-gray-50/50 flex-1", !isSidebarExpanded && "md:hidden")}>
           <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Past Chats</div>
           <div className="space-y-1">
             {sessions.map(session => (
               <div key={session.id} className="relative group">
                 <button
-                  onClick={() => handleLoadChat(session.id)}
+                  onClick={() => {
+                    handleLoadChat(session.id);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl transition-all pr-10 ${urlSessionId === session.id ? 'bg-[#0f62fe] text-white shadow-sm' : 'hover:bg-white border border-transparent'}`}
                 >
                   <div className={`text-sm font-semibold truncate ${urlSessionId === session.id ? 'text-white' : 'text-gray-600'}`}>
@@ -181,44 +192,42 @@ export function AppSidebar() {
             )}
           </div>
         </div>
-      )}
       </div>
 
       {/* Bottom Section */}
       <div className="p-4 space-y-4">
 
 
-        <div className={cn("space-y-1", !isSidebarExpanded && "px-2")}>
+        <div className={cn("space-y-1", !isSidebarExpanded && "md:px-2")}>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className={cn("group relative w-full flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors", isSidebarExpanded ? "px-3" : "justify-center px-0")}
+            className={cn("group relative w-full flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors", !isSidebarExpanded ? "md:justify-center md:px-0 px-3" : "px-3")}
           >
             <Settings className="h-5 w-5 shrink-0 stroke-[2px] text-slate-500" />
-            {isSidebarExpanded && <span>Settings</span>}
-            {!isSidebarExpanded && (
-              <div className="absolute left-full ml-4 hidden group-hover:block z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
-                Settings
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-              </div>
-            )}
+            <span className={cn(!isSidebarExpanded && "md:hidden")}>Settings</span>
+            
+            <div className={cn("absolute left-full ml-4 z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl", isSidebarExpanded ? "hidden" : "hidden md:group-hover:block")}>
+              Settings
+              <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+            </div>
           </button>
           <button
             onClick={() => signOut()}
-            className={cn("group relative w-full flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors", isSidebarExpanded ? "px-3" : "justify-center px-0")}
+            className={cn("group relative w-full flex items-center gap-3 rounded-xl py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors", !isSidebarExpanded ? "md:justify-center md:px-0 px-3" : "px-3")}
           >
             <LogOut className="h-5 w-5 shrink-0 stroke-[2px] text-red-500" />
-            {isSidebarExpanded && <span>Logout</span>}
-            {!isSidebarExpanded && (
-              <div className="absolute left-full ml-4 hidden group-hover:block z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
-                Logout
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-              </div>
-            )}
+            <span className={cn(!isSidebarExpanded && "md:hidden")}>Logout</span>
+            
+            <div className={cn("absolute left-full ml-4 z-50 bg-gray-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl", isSidebarExpanded ? "hidden" : "hidden md:group-hover:block")}>
+              Logout
+              <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+            </div>
           </button>
         </div>
       </div>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-    </aside>
+      </aside>
+    </>
   );
 }

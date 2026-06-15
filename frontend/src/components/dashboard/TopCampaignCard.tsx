@@ -20,10 +20,10 @@ export function TopCampaignCard() {
           Live
         </span>
       </CardHeader>
-      <CardContent className="flex-1 min-w-0 flex flex-col sm:flex-row gap-6 pt-2">
+      <CardContent className="flex-1 min-w-0 flex flex-row gap-4 sm:gap-6 pt-2">
         {isLoading ? (
-          <div className="flex-1 flex flex-col sm:flex-row gap-6 pt-2">
-            <div className="relative h-[160px] w-full sm:w-[160px] flex-shrink-0 skeleton rounded-xl" />
+          <div className="flex-1 flex flex-row gap-4 sm:gap-6 pt-2">
+            <div className="relative h-[130px] sm:h-[160px] w-[130px] sm:w-[160px] flex-shrink-0 skeleton rounded-xl" />
             <div className="flex-1 flex flex-col justify-center py-2">
               <div className="mb-6">
                 <div className="h-6 w-3/4 skeleton rounded mb-2" />
@@ -46,9 +46,9 @@ export function TopCampaignCard() {
             No campaigns created yet.
           </div>
         ) : (
-          <div className="flex-1 min-w-0 flex flex-col sm:flex-row gap-6 pt-2">
+          <div className="flex-1 min-w-0 flex flex-row gap-4 sm:gap-6 pt-2">
             {/* Poster Thumbnail */}
-            <div className="relative h-[160px] w-full sm:w-[160px] flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#6345ED] to-[#3B82F6] flex items-center justify-center">
+            <div className="relative h-[130px] sm:h-[160px] w-[130px] sm:w-[160px] flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#6345ED] to-[#3B82F6] flex items-center justify-center">
               <img
                 src={
                   campaigns.list[0].name.includes('Welcome Back')

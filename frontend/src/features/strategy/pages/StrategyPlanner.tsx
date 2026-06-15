@@ -354,9 +354,9 @@ export function StrategyPlanner() {
             </div>
           ) : (
             messages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-4 max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
-              <div className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-[#0f62fe]' : 'bg-blue-50'}`}>
-                {msg.role === 'user' ? <User className="h-5 w-5 text-white" /> : <Sparkles className="h-5 w-5 text-[#0f62fe]" />}
+            <div key={idx} className={`flex gap-3 sm:gap-4 max-w-[95%] sm:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
+              <div className={`shrink-0 h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-[#0f62fe]' : 'bg-blue-50'}`}>
+                {msg.role === 'user' ? <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" /> : <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-[#0f62fe]" />}
               </div>
               <div className={`space-y-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`p-4 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-[#0f62fe] text-white rounded-tr-sm' : 'bg-gray-50 text-gray-900 border border-gray-100 rounded-tl-sm'}`}>
@@ -381,12 +381,12 @@ export function StrategyPlanner() {
                 
                 {/* Strategy Card */}
                 {msg.data && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-4 border-b pb-3 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-[#0f62fe]" />
                       AI Audience Recommendations
                     </h3>
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
                       <div className="p-3 bg-gray-50 rounded-lg text-center">
                         <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Audience Size</div>
                         <div className="text-xl font-bold text-gray-900">{msg.data.audienceSize > 0 ? new Intl.NumberFormat('en-IN').format(msg.data.audienceSize) : 'Calculated'}</div>
@@ -415,7 +415,7 @@ export function StrategyPlanner() {
 
                 {/* Creatives Card & Loading State */}
                 {(msg.creativeResult || msg.isGeneratingImages) && (
-                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm min-w-[500px] mt-2 relative overflow-hidden">
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-[#0f62fe] to-purple-500"></div>
                     <h3 className="text-sm font-bold text-gray-900 mb-5 flex items-center gap-2">
                       {msg.isGeneratingImages && !msg.creativeResult ? (
@@ -460,7 +460,7 @@ export function StrategyPlanner() {
 
                 {/* Content Card */}
                 {msg.contentResult && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-4 border-b pb-3 flex items-center gap-2">
                       <Bot className="h-4 w-4 text-[#0f62fe]" />
                       Message Content ({msg.contentResult.channel})
@@ -483,7 +483,7 @@ export function StrategyPlanner() {
 
                 {/* Campaign Preview Card */}
                 {msg.previewResult && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
                     <h3 className="text-sm font-bold text-[#0f62fe] mb-4 border-b pb-3 flex items-center gap-2">
                       <Bot className="h-4 w-4 text-[#0f62fe]" />
                       Campaign Ready to Launch
@@ -493,7 +493,7 @@ export function StrategyPlanner() {
                         <Bot className="h-8 w-8 text-white ml-1 mb-1" strokeWidth={1.5} />
                       </div>
                       <h4 className="text-base font-bold text-gray-900 mb-4">Everything looks good!</h4>
-                      <div className="grid grid-cols-2 gap-4 w-full text-left bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full text-left bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                         <div>
                           <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Campaign Name</span>
                           <span className="text-sm font-bold text-gray-900">{msg.previewResult.campaign_name || 'Winback Strategy'}</span>
@@ -525,8 +525,8 @@ export function StrategyPlanner() {
 
                 {/* Insight Card */}
                 {msg.insightResult && (
-                  <div className="bg-white border border-[#E6E8E1] rounded-xl p-5 shadow-sm min-w-[500px] mt-2 flex gap-4 items-start">
-                    <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0 border border-yellow-100">
+                  <div className="bg-white border border-[#E6E8E1] rounded-xl p-4 sm:p-5 shadow-sm w-full sm:min-w-[500px] mt-2 flex gap-3 sm:gap-4 items-start">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0 border border-yellow-100">
                       <Sparkles className="h-5 w-5 text-yellow-500" />
                     </div>
                     <div className="flex-1">

@@ -13,6 +13,7 @@ import { StrategyPlanner } from '../features/strategy/pages/StrategyPlanner';
 import { Audience } from '../features/audience/pages/Audience';
 import { Automations } from '../features/automations/pages/Automations';
 import { AutomationBuilder } from '../features/automations/pages/AutomationBuilder';
+import { useState } from 'react';
 import { NotFound } from '../pages/NotFound';
 import { ErrorPage } from '../pages/ErrorPage';
 import { useLayoutStore } from '../hooks/useLayoutStore';
@@ -97,10 +98,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
  * 
  * @returns {JSX.Element} The routing tree.
  */
-export const AppNavigator = () => {
+export function AppNavigator() {
+  const { isSidebarExpanded } = useLayoutStore();
   const location = useLocation();
   const { initialize } = useAuthStore();
-  const { isSidebarExpanded } = useLayoutStore();
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initialize();
@@ -125,9 +127,9 @@ export const AppNavigator = () => {
           </main>
         ) : (
           <>
-            <AppSidebar />
+            <AppSidebar isMobileMenuOpen={isMobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
             <div className={`flex flex-col w-full transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'md:pl-[240px]' : 'md:pl-[80px]'} ${isStrategyPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-              {!isStrategyPage && <TopHeader />}
+              {!isStrategyPage && <TopHeader setMobileMenuOpen={setMobileMenuOpen} />}
               <main className={`flex-1 ${isStrategyPage ? 'min-h-0 h-full overflow-hidden flex flex-col' : 'overflow-x-hidden pt-[72px]'}`}>
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>

@@ -5,9 +5,10 @@ import { useLayoutStore } from '../../hooks/useLayoutStore';
 /**
  * TopHeader Component
  * 
+ * @param {{ setMobileMenuOpen: (open: boolean) => void }} props
  * @returns {JSX.Element}
  */
-export function TopHeader() {
+export function TopHeader({ setMobileMenuOpen }: { setMobileMenuOpen: (open: boolean) => void }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
@@ -43,9 +44,13 @@ export function TopHeader() {
   }
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-30 flex h-[72px] items-center justify-between border-b border-white/50 bg-white/70 px-6 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'md:left-[240px]' : 'md:left-[80px]'}`}>
-      <div className="flex items-center gap-4">
-        <button className="md:hidden text-gray-500 hover:text-gray-900">
+    <header className={`fixed top-0 left-0 right-0 z-30 flex h-[72px] items-center justify-between border-b border-white/50 bg-white/70 px-4 sm:px-6 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-300 ease-in-out md:left-[80px] ${isSidebarExpanded ? 'md:left-[240px]' : ''}`}>
+      <div className="flex items-center gap-3 sm:gap-4">
+        <button 
+          onClick={() => setMobileMenuOpen(true)}
+          className="md:hidden text-gray-500 hover:text-gray-900 -ml-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          type="button"
+        >
           <Menu className="h-6 w-6" />
         </button>
         <div>

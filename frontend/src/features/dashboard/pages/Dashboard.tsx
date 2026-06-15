@@ -45,26 +45,26 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col p-6 max-w-[1458px] mx-auto w-full gap-4">
+    <div className="flex flex-col p-4 sm:p-6 max-w-[1458px] mx-auto w-full gap-4">
       <KPISection />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-4">
-        <div className="h-[380px] lg:col-span-2 xl:col-span-1">
+        <div className="min-h-[380px] lg:col-span-2 xl:col-span-1">
           <CampaignPerformance />
         </div>
-        <div className="h-[380px]">
+        <div className="min-h-[380px]">
           <ChannelPerformance />
         </div>
-        <div className="h-[380px] lg:col-span-2 xl:col-span-1">
+        <div className="min-h-[380px] lg:col-span-2 xl:col-span-1">
           <QuickActions />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)] gap-4">
-        <div className="h-[335px]">
+        <div className="min-h-[335px]">
           <TopCampaignCard />
         </div>
-        <div className="h-[335px]">
+        <div className="min-h-[335px]">
           <RecentActivity />
         </div>
       </div>

@@ -1,0 +1,33 @@
+Channel Simulation & Webhooks Guide
+===================================
+This document outlines the architecture for simulating third-party messaging providers (like WhatsApp or Instagram) and handling asynchronous delivery receipts via webhooks.
+
+Architecture Overview
+---------------------
+Per the Xeno system design prompt, we do not integrate with real messaging providers. Instead, we stub the provider as an internal service and model the full async lifecycle of a message (Queue -> Send -> Network Delay -> Callback).
+
+Components
+
+1. The Job Queue (`pg-boss`)
+   - File: `backend/src/services/automationEngine.js`
+   - Role: When a campaign is launched or an automation triggers, a job payload (containing the user ID, message copy, and channel) is inserted into a PostgreSQL queue.
+   - Why: Guarantees delivery. If the server crashes, the job remains in the DB and is retried.
+
+2. The Stubbed Channel Provider
+   - File: `backend/src/controllers/channelController.js`
+   - Role: Acts as the "Twilio" or "Meta" API.
+   - Flow:
+     a. Receives the payload from the worker.
+     b. Validates the payload.
+     c. Randomly determines if the message is "Delivered", "Failed", "Opened", or "Clicked".
+     d. Sleeps for a simulated network delay (e.g., 2-5 seconds).
+     e. Fires an HTTP POST request back to our Webhook Receiver.
+
+3. The Webhook Receiver
+   - File: `backend/src/controllers/webhookController.js`
+   - Role: The endpoint that listens for callbacks from the channel provider.
+   - Flow:
+     a. Receives the async HTTP POST (`/api/webhooks/channel-status`).
+     b. Verifies the payload signature (optional security step).
+     c. Updates the `campaign_analytics` or `automation_analytics` table in Supabase.
+     d. Broadcasts the update to the frontend (via Polling or Server-Sent Events) to update the UI progress bars in real-time.

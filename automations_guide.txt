@@ -1,0 +1,31 @@
+Automations Engine Reference Guide
+==================================
+This document outlines the visual automation builder and backend execution engine.
+
+Overview
+--------
+The Automations feature allows marketers to build complex, trigger-based multi-step workflows. For example: "When a user abandons their cart -> Wait 1 hour -> Send WhatsApp reminder -> If no purchase, send Instagram DM."
+
+Frontend: Visual Builder (React Flow)
+-------------------------------------
+- Tech: Built using `reactflow` to provide a drag-and-drop canvas.
+- Nodes: Users drag triggers (e.g., "Cart Abandoned"), actions (e.g., "Send WhatsApp"), and logic gates (e.g., "Wait 1 Hour", "Condition: Opened Message").
+- Edges: Connections between nodes represent the execution path.
+- State: Managed via Zustand to easily serialize the nodes/edges into JSON to save to the backend.
+
+Backend: Execution Engine (`pg-boss`)
+-------------------------------------
+- Tech: The engine is powered by `pg-boss`, a PostgreSQL job queue.
+- Logic:
+  1. A trigger event occurs (e.g., order placed).
+  2. The backend looks up active automations that listen to this trigger.
+  3. It traverses the JSON node graph.
+  4. If it hits an "Action" node, it pushes a job to `pg-boss` to execute the action (send message).
+  5. If it hits a "Wait" node, it schedules a delayed job in `pg-boss` using the `startAfter` property.
+  6. State is securely persisted so server restarts do not lose pending automation steps.
+
+Database Tables
+---------------
+- `automations`: Stores metadata (title, status, trigger type).
+- `automation_nodes` / `automation_edges`: Stores the graph layout and logic.
+- `automation_analytics`: Tracks how many times an automation fired and how much revenue it recovered.

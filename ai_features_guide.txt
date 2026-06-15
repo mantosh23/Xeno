@@ -1,0 +1,38 @@
+AI Features Reference Guide
+===========================
+This document outlines the architecture and integration of Google Gemini AI in the StyleHive CRM.
+
+Overview
+--------
+The `aiController.js` acts as the central hub for all generative AI features. It utilizes the `@google/genai` SDK with the `gemini-2.5-flash` model for high-speed, cost-effective inference. We rely heavily on **Structured Outputs (JSON Schema)** to ensure the AI returns programmatic data that the frontend can parse reliably.
+
+Core Capabilities
+-----------------
+
+1. Strategy Planner (Campaign Generation)
+   - Endpoint: `POST /api/ai/strategy`
+   - Purpose: Takes a high-level marketing goal (e.g., "Clear winter inventory") and returns a comprehensive campaign strategy.
+   - Structured Output Schema:
+     {
+       "target_audience": "string (e.g., 'Users who bought winter gear last year')",
+       "recommended_offer": "string",
+       "recommended_channels": ["string"]
+     }
+
+2. Natural Language to SQL (Audience Builder)
+   - Purpose: Translates a marketer's English query into safe, parameterized PostgreSQL to execute against the Supabase `customers` and `orders` tables.
+   - Security: The AI is restricted to only generating `SELECT` queries and cannot modify the database.
+
+3. Content Generation & Copywriting
+   - Endpoint: `POST /api/ai/content`
+   - Purpose: Drafts multi-channel copy (WhatsApp, Instagram, Email) customized for the target audience and offer.
+   - It also estimates realistic open and click rates based on the channel selected.
+
+4. 1:1 Personalization Engine
+   - Endpoint: `POST /api/ai/personalize`
+   - Purpose: Injects specific customer data (e.g., past purchase history, name, location, preferred colors) into the base template.
+   - Example Input: `Template: "Hey [Name], grab 20% off!"` + `Customer: Ananya, bought a Red Dress`.
+   - Example Output: `"Hey Ananya, we noticed you loved that Red Dress! Grab 20% off your next outfit."`
+
+5. Creative Inspiration & Layouts
+   - Purpose: AI brainstorms visual asset concepts and suggests styling/layouts for the frontend to render dynamic CSS banners.

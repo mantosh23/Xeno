@@ -48,7 +48,7 @@ export const CampaignDetails = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 space-y-8">
-          {details.campaign.status === 'Active' ? (
+          {['Active', 'Stopped', 'Completed'].includes(details.campaign.status) ? (
             <CampaignChannelInsights {...details} />
           ) : (
             <div className="bg-white rounded-[24px] p-8 border border-gray-100 flex flex-col items-center justify-center text-center h-[400px]">

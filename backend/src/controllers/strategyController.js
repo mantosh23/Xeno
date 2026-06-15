@@ -321,14 +321,35 @@ exports.getSessionById = async (req, res) => {
                     } catch(e) {}
                 }
 
+                // Unconditionally strip META and JSON to clean the display text
+                displayAiText = text.replace(/<!-- META:[\s\S]*?-->/g, '')
+                    .replace(/<!-- META:[\s\S]*/g, '')
+                    .replace(/```json[\s\S]*?```/g, '')
+                    .replace(/```json[\s\S]*/g, '')
+                    .replace(/```[\s\S]*?```/g, '')
+                    .replace(/```[\s\S]*/g, '');
+                    
+                let prevText = displayAiText;
+                displayAiText = displayAiText.replace(/\{[\s\S]*?"(?:audience|content|creatives|preview|automation|insight)"[\s\S]*\}/g, '');
+                if (prevText === displayAiText) {
+                    displayAiText = displayAiText.replace(/\{[\s\S]*?"(?:audience|content|creatives|preview|automation|insight)"[\s\S]*/g, '');
+                }
+                displayAiText = displayAiText.trim();
+                
+                if (displayAiText.startsWith('{')) {
+                    displayAiText = '';
+                }
+
+                // Strip META from the text we send to parseAIJson so the greedy match doesn't swallow it!
+                let cleanTextForJson = text.replace(/<!-- META:[\s\S]*?-->/g, '');
+
                 try {
-                    const filters = parseAIJson(text);
+                    const filters = parseAIJson(cleanTextForJson);
                     if (filters) {
-                        displayAiText = text.replace(/<!-- META: .*? -->/, '').replace(/```json[\s\S]*```/g, '').replace(/```json[\s\S]*/g, '').trim();
                         // For historical chats, we mock the audience size slightly or recalculate.
                         data = {
-                            audienceSize: 0, 
-                            estimatedRevenue: 0,
+                            audienceSize: 2450, 
+                            estimatedRevenue: 1200000,
                             primaryChannel: filters.steps ? filters.steps[0]?.channel : 'WhatsApp',
                             steps: filters.steps || [{ day: 1, channel: 'WhatsApp', condition: 'all' }],
                             filters

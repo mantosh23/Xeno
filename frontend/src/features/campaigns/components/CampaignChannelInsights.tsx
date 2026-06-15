@@ -1,8 +1,22 @@
-import { BarChart3, Pause, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart3, Pause, Play, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 
 export function CampaignChannelInsights({ campaign, analytics }: any) {
+  const [channelStatuses, setChannelStatuses] = useState<Record<string, boolean>>({});
+
   if (!campaign?.channels || campaign.channels.length === 0) return null;
+
+  const isGloballyStopped = campaign.status === 'Stopped' || campaign.status === 'stopped';
+
+  const isChannelPaused = (ch: string) => {
+    if (channelStatuses[ch] !== undefined) return channelStatuses[ch];
+    return isGloballyStopped;
+  };
+
+  const toggleChannel = (ch: string) => {
+    setChannelStatuses(prev => ({ ...prev, [ch]: !isChannelPaused(ch) }));
+  };
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -62,9 +76,22 @@ export function CampaignChannelInsights({ campaign, analytics }: any) {
                       {channel} Ads
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded uppercase tracking-wider">Active</span>
-                      <button className="p-1 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors" title={`Pause ${channel}`}>
-                        <Pause className="h-4 w-4" fill="currentColor" />
+                      <span className={`text-[10px] font-bold px-2 py-1 border rounded uppercase tracking-wider ${
+                        isChannelPaused(channel) 
+                          ? 'bg-amber-50 text-amber-600 border-amber-100' 
+                          : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                      }`}>
+                        {isChannelPaused(channel) ? 'Paused' : 'Active'}
+                      </span>
+                      <button 
+                        onClick={() => toggleChannel(channel)}
+                        className="p-1 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors" 
+                        title={`${isChannelPaused(channel) ? 'Resume' : 'Pause'} ${channel}`}>
+                        {isChannelPaused(channel) ? (
+                          <Play className="h-4 w-4" fill="currentColor" />
+                        ) : (
+                          <Pause className="h-4 w-4" fill="currentColor" />
+                        )}
                       </button>
                     </div>
                   </div>

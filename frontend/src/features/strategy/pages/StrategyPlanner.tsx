@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../services/api';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, MessageSquare, Clock, Filter, Search, MoreVertical, Settings2, Share2, Plus, Download, Image as ImageIcon, Loader2, Bot, ArrowRight, User, X, ArrowUp } from 'lucide-react';
+import { Send, Sparkles, MessageSquare, Clock, Filter, Search, MoreVertical, Settings2, Share2, Plus, Download, Image as ImageIcon, Loader2, Bot, ArrowRight, User, X, ArrowUp, Menu } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
@@ -28,6 +28,8 @@ type Message = {
 
 import { useStrategyStore } from '../hooks/useStrategyStore';
 import { usePageCacheStore } from '../../dashboard/hooks/usePageCacheStore';
+import { useLayoutStore } from '../../../hooks/useLayoutStore';
+import { useCampaignsListStore } from '../../campaigns/hooks/useCampaignsListStore';
 
 /**
  * StrategyPlanner Component
@@ -36,6 +38,7 @@ import { usePageCacheStore } from '../../dashboard/hooks/usePageCacheStore';
  */
 export function StrategyPlanner() {
   const { getCache, setCache } = usePageCacheStore();
+  const { setMobileMenuOpen } = useLayoutStore();
   const cacheKey = 'StrategyPlanner';
   const cached = getCache(cacheKey) || {};
 
@@ -61,6 +64,14 @@ export function StrategyPlanner() {
   const { id: urlSessionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { fetchSessions } = useStrategyStore();
+  const fetchCampaigns = useCampaignsListStore(s => s.fetchCampaigns);
+  const campaignsList = useCampaignsListStore(s => s.campaigns.list);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
+
+  const isLaunched = sessionId ? campaignsList.some((c: any) => c.strategy?.session_id === sessionId) : false;
 
   const [launching, setLaunching] = useState(false);
 
@@ -213,10 +224,28 @@ export function StrategyPlanner() {
 
               if (data.text) {
                 aiText += data.text;
-                // Strip out any JSON markdown blocks from the visible chat
-                let displayAiText = aiText.replace(/```json[\s\S]*```/g, '').replace(/```json[\s\S]*/g, '').trim();
-                // Also strip raw JSON if the user explicitly asked for ONLY JSON and no fences
-                if (displayAiText.startsWith('{') && displayAiText.includes('"insight"')) {
+                // Strip out any JSON markdown blocks, raw JSON blocks, and META comments
+                let displayAiText = aiText
+                  .replace(/<!-- META:[\s\S]*?-->/g, '')
+                  .replace(/<!-- META:[\s\S]*/g, '')
+                  .replace(/```json[\s\S]*?```/g, '')
+                  .replace(/```json[\s\S]*/g, '')
+                  .replace(/```[\s\S]*?```/g, '')
+                  .replace(/```[\s\S]*/g, '');
+                  
+                let prevText = displayAiText;
+                // Match the complete JSON object (greedy match to the last closing brace)
+                displayAiText = displayAiText.replace(/\{[\s\S]*?"(?:audience|content|creatives|preview|automation|insight)"[\s\S]*\}/g, '');
+                
+                // If it didn't match because the stream is incomplete (missing closing brace), hide from the { to the end
+                if (prevText === displayAiText) {
+                    displayAiText = displayAiText.replace(/\{[\s\S]*?"(?:audience|content|creatives|preview|automation|insight)"[\s\S]*/g, '');
+                }
+
+                displayAiText = displayAiText.trim();
+                
+                // Final failsafe for early stream flickers
+                if (displayAiText.startsWith('{')) {
                   displayAiText = '';
                 }
 
@@ -317,6 +346,14 @@ export function StrategyPlanner() {
   return (
     <div className="w-full h-full flex flex-col bg-white relative z-0 min-h-0">
       
+      {/* Mobile Burger Menu */}
+      <button 
+        onClick={() => setMobileMenuOpen(true)}
+        className="md:hidden absolute top-4 left-4 z-50 p-2.5 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 text-gray-700 hover:text-[#0f62fe] transition-colors focus:outline-none"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 relative min-h-0">
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto w-full relative scroll-smooth">
@@ -358,19 +395,21 @@ export function StrategyPlanner() {
               <div className={`shrink-0 h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-[#0f62fe]' : 'bg-blue-50'}`}>
                 {msg.role === 'user' ? <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" /> : <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-[#0f62fe]" />}
               </div>
-              <div className={`space-y-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`p-4 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-[#0f62fe] text-white rounded-tr-sm' : 'bg-gray-50 text-gray-900 border border-gray-100 rounded-tl-sm'}`}>
+              <div className={`flex-1 min-w-0 flex flex-col space-y-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`p-4 rounded-2xl text-sm max-w-full overflow-x-auto ${msg.role === 'user' ? 'bg-[#0f62fe] text-white rounded-tr-sm' : 'bg-gray-50 text-gray-900 border border-gray-100 rounded-tl-sm'}`}>
                   {msg.role === 'user' ? (
                     msg.text
                   ) : (
                     <div className="space-y-3 leading-relaxed">
                       <ReactMarkdown 
                         components={{
-                          p: ({node, ...props}) => <p {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc pl-4 space-y-1" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 space-y-1" {...props} />,
-                          li: ({node, ...props}) => <li {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-semibold text-[#0f62fe]" {...props} />
+                          p: ({node, ...props}) => <p className="break-words max-w-full" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc pl-4 space-y-1 max-w-full break-words" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 space-y-1 max-w-full break-words" {...props} />,
+                          li: ({node, ...props}) => <li className="max-w-full" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-semibold text-[#0f62fe]" {...props} />,
+                          pre: ({node, ...props}) => <pre className="bg-white border border-gray-200 p-3 rounded-lg overflow-x-auto max-w-full text-xs mt-2 mb-2 whitespace-pre-wrap word-break" {...props} />,
+                          code: ({node, inline, ...props}: any) => inline ? <code className="bg-gray-100 px-1 py-0.5 rounded text-xs text-[#0f62fe] break-words" {...props} /> : <code className="text-xs break-words" {...props} />
                         }}
                       >
                         {msg.text}
@@ -381,20 +420,20 @@ export function StrategyPlanner() {
                 
                 {/* Strategy Card */}
                 {msg.data && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full max-w-full sm:w-auto sm:min-w-[500px] overflow-hidden mt-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-4 border-b pb-3 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-[#0f62fe]" />
                       AI Audience Recommendations
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-2">
                       <div className="p-3 bg-gray-50 rounded-lg text-center">
                         <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Audience Size</div>
-                        <div className="text-xl font-bold text-gray-900">{msg.data.audienceSize > 0 ? new Intl.NumberFormat('en-IN').format(msg.data.audienceSize) : 'Calculated'}</div>
+                        <div className="text-xl font-bold text-gray-900">{new Intl.NumberFormat('en-IN').format(msg.data.audienceSize)}</div>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg text-center">
                         <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Est. Revenue</div>
                         <div className="text-xl font-bold text-green-600">
-                          {msg.data.estimatedRevenue > 0 ? `₹${(msg.data.estimatedRevenue / 100000).toFixed(1)}L` : 'Projected'}
+                          ₹{(msg.data.estimatedRevenue / 100000).toFixed(1)}L
                         </div>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg text-center">
@@ -402,20 +441,12 @@ export function StrategyPlanner() {
                         <div className="text-xl font-bold text-[#0f62fe]">{msg.data.primaryChannel}</div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-3">
-                      <Link 
-                        to={`/audience?${new URLSearchParams(msg.data.filters).toString()}`}
-                        className="text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors"
-                      >
-                        View Audience
-                      </Link>
-                    </div>
                   </div>
                 )}
 
                 {/* Creatives Card & Loading State */}
                 {(msg.creativeResult || msg.isGeneratingImages) && (
-                  <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2 relative overflow-hidden">
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-6 shadow-sm w-full max-w-full sm:w-auto sm:min-w-[500px] overflow-hidden mt-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-[#0f62fe] to-purple-500"></div>
                     <h3 className="text-sm font-bold text-gray-900 mb-5 flex items-center gap-2">
                       {msg.isGeneratingImages && !msg.creativeResult ? (
@@ -460,7 +491,7 @@ export function StrategyPlanner() {
 
                 {/* Content Card */}
                 {msg.contentResult && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full max-w-full sm:w-auto sm:min-w-[500px] overflow-hidden mt-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-4 border-b pb-3 flex items-center gap-2">
                       <Bot className="h-4 w-4 text-[#0f62fe]" />
                       Message Content ({msg.contentResult.channel})
@@ -470,20 +501,12 @@ export function StrategyPlanner() {
                         {msg.contentResult.message_copy}
                       </pre>
                     </div>
-                    <div className="flex justify-end mt-4">
-                      <Link 
-                        to="/create-campaign"
-                        className="text-xs font-bold text-white bg-[#0f62fe] hover:bg-[#0f62fe]/90 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
-                      >
-                        Launch Campaign <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
                   </div>
                 )}
 
                 {/* Campaign Preview Card */}
                 {msg.previewResult && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full sm:min-w-[500px] mt-2">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm w-full max-w-full sm:w-auto sm:min-w-[500px] overflow-hidden mt-2">
                     <h3 className="text-sm font-bold text-[#0f62fe] mb-4 border-b pb-3 flex items-center gap-2">
                       <Bot className="h-4 w-4 text-[#0f62fe]" />
                       Campaign Ready to Launch
@@ -495,12 +518,12 @@ export function StrategyPlanner() {
                       <h4 className="text-base font-bold text-gray-900 mb-4">Everything looks good!</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full text-left bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                         <div>
-                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Campaign Name</span>
-                          <span className="text-sm font-bold text-gray-900">{msg.previewResult.campaign_name || 'Winback Strategy'}</span>
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block truncate">Campaign Name</span>
+                          <span className="text-sm font-bold text-gray-900 line-clamp-2 break-words">{msg.previewResult.campaign_name || 'Winback Strategy'}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Channels</span>
-                          <span className="text-sm font-bold text-gray-900">{(msg.previewResult.channels || ['WhatsApp']).join(', ')}</span>
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block truncate">Channels</span>
+                          <span className="text-sm font-bold text-gray-900 line-clamp-2 break-words">{(msg.previewResult.channels || ['WhatsApp']).join(', ')}</span>
                         </div>
                         <div>
                           <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider block">Personalization</span>
@@ -514,10 +537,10 @@ export function StrategyPlanner() {
                       <button 
                         className="w-full mt-5 bg-[#0f62fe] hover:bg-[#0353e9] text-white font-bold py-3 rounded-lg text-sm shadow-md transition-colors flex items-center justify-center gap-2 disabled:bg-[#0f62fe]/70"
                         onClick={() => handleLaunchFromChat(msg.previewResult)}
-                        disabled={launching}
+                        disabled={launching || isLaunched}
                       >
                         {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} 
-                        {launching ? 'Launching Campaign...' : 'Finalize & Launch Campaign'}
+                        {isLaunched ? 'Campaign Already Launched' : (launching ? 'Launching Campaign...' : 'Finalize & Launch Campaign')}
                       </button>
                     </div>
                   </div>
@@ -525,7 +548,7 @@ export function StrategyPlanner() {
 
                 {/* Insight Card */}
                 {msg.insightResult && (
-                  <div className="bg-white border border-[#E6E8E1] rounded-xl p-4 sm:p-5 shadow-sm w-full sm:min-w-[500px] mt-2 flex gap-3 sm:gap-4 items-start">
+                  <div className="bg-white border border-[#E6E8E1] rounded-xl p-4 sm:p-5 shadow-sm w-full max-w-full sm:w-auto sm:min-w-[500px] overflow-hidden mt-2 flex gap-3 sm:gap-4 items-start">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0 border border-yellow-100">
                       <Sparkles className="h-5 w-5 text-yellow-500" />
                     </div>

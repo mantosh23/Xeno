@@ -31,20 +31,13 @@ export function CampaignDetailsHeader({ campaign, isSimulating, setIsDevSimulato
         </div>
         
         <div className="flex gap-2 flex-wrap justify-end">
-          {campaign.status === 'Active' || campaign.status === 'active' || campaign.status === 'Running' ? (
+          { (campaign.status === 'Active' || campaign.status === 'active' || campaign.status === 'Running') && (
             <button 
               onClick={handleStopCampaign}
               disabled={isSaving}
               className="px-4 py-2 bg-red-50 border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors text-xs flex items-center gap-2">
               {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
               {isSaving ? 'Stopping...' : 'Stop Campaign'}
-            </button>
-          ) : (
-            <button 
-              onClick={editCampaignInWizard}
-              className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs flex items-center gap-2 shadow-sm">
-              <Edit className="h-3 w-3" />
-              Edit Campaign
             </button>
           )}
 

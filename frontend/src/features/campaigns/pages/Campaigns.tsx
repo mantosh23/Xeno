@@ -124,11 +124,11 @@ export function Campaigns() {
               const pseudoRandom = ((seed * 9301 + 49297) % 233280) / 233280;
               return (pseudoRandom * (max - min) + min).toFixed(1);
             };
-            const isActive = camp.status === 'Active';
-            const openRate = isActive ? getStableStat(camp.id, 0, 40, 65) : '0.0';
-            const clickRate = isActive ? getStableStat(camp.id, 10, 8, 20) : '0.0';
-            const conversion = isActive ? getStableStat(camp.id, 20, 1, 5) : '0.0';
-            const revenue = isActive ? (camp.potential_revenue ? (camp.potential_revenue / 100000).toFixed(1) : '2.2') : '0.0';
+            const hasData = ['Active', 'Stopped', 'Completed', 'active', 'stopped', 'completed'].includes(camp.status);
+            const openRate = hasData ? getStableStat(camp.id, 0, 40, 65) : '0.0';
+            const clickRate = hasData ? getStableStat(camp.id, 10, 8, 20) : '0.0';
+            const conversion = hasData ? getStableStat(camp.id, 20, 1, 5) : '0.0';
+            const revenue = hasData ? (camp.potential_revenue ? (camp.potential_revenue / 100000).toFixed(1) : '2.2') : '0.0';
 
             return (
               <div 

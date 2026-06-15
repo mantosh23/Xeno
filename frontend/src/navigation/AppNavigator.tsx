@@ -99,10 +99,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
  * @returns {JSX.Element} The routing tree.
  */
 export function AppNavigator() {
-  const { isSidebarExpanded } = useLayoutStore();
+  const { isSidebarExpanded, isMobileMenuOpen, setMobileMenuOpen } = useLayoutStore();
   const location = useLocation();
   const { initialize } = useAuthStore();
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initialize();
